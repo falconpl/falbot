@@ -15,10 +15,10 @@ class FalBot( host, nick, name ) from IrcClient( host, nick, name )
    end
 end
 
-i = FalBot( "irc.freenode.net", "falbot", "FalconBOT" )
+i = FalBot( "irc.freenode.net", "falbot_", "FalconBOT" )
 i.setTimeout( 2000 )
 i.connect()
-i.send( "JOIN :#johndoey" )
+i.send( "JOIN :#falconpl" )
 
 while true
    sleep( 0.5 )

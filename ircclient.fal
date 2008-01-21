@@ -54,7 +54,7 @@ end
  * :jeremy_c!n=jeremy_c@cpe-71-74-145-210.neo.res.rr.com JOIN :#falconpl
  */
  
-class IrcJoinMessage( raw ) from IrcMessage( raw )
+class IrcJoinMessage( raw, re ) from IrcMessage( raw, re )
    user    = nil
    channel = nil
    
@@ -72,7 +72,7 @@ end
  * :jeremy_c!n=jeremy@cpe-71-74-145-210.neo.res.rr.com PRIVMSG #johndoey :hello.
  */
  
-class IrcPrivateMessage( raw ) from IrcMessage( raw )
+class IrcPrivateMessage( raw, re ) from IrcMessage( raw, re )
    nick    = nil
    host    = nil
    channel = nil
@@ -108,7 +108,7 @@ class IrcPartMessage( raw, re ) from IrcMessage( raw, re )
    end
 
    function toString()
-      return @"<Part Message> $self.user PARTED FROM $self.channel SAYING $self.message"
+      return @"<Part Message> $self.nick PARTED FROM $self.channel SAYING $self.message"
    end
 end
 
@@ -134,7 +134,7 @@ class IrcClient( nServer, nNick, nRealname) from TCPSocket
                 IrcMessagePair( Regex( ":(.*)!(.*) JOIN :(.*)$" ),
                                 IrcJoinMessage ),
 
-                IrcMessagePair( Regex( ":(.*)!(.*) PART (.*)$" ),
+                IrcMessagePair( Regex( ":(.*)!(.*) PART (.*) :(.*)$" ),
                                 IrcPartMessage ),
 
                 IrcMessagePair( Regex( ":(.*)!(.*) PRIVMSG (.*) :(.*)$" ),
@@ -197,7 +197,8 @@ class IrcClient( nServer, nNick, nRealname) from TCPSocket
       if self.readAvailable(0)
          m = self.readMessage()
          if m == nil
-            > "Could not parse message: '", self.buf, "'"
+            // TODO: Enable some type of debug, or verbose mode
+            // > "Could not parse message: '", self.buf, "'"
             return
          end
          
@@ -215,7 +216,8 @@ class IrcClient( nServer, nNick, nRealname) from TCPSocket
          end
 
          if not m
-            > "Could not parse message: '", self.buf, "'"
+            // TODO: Some type of debug/verbose mode
+            // > "Could not parse message: '", self.buf, "'"
          end
       end
    end
