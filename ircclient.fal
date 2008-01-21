@@ -1,0 +1,261 @@
+load socket
+load regex
+
+/*
+ * :simmons.freenode.net 252 falbot 36 :flagged staff members
+ */
+
+class IrcMessage( raw, nRe )
+   rawMessage = raw
+   re = nRe
+   
+   function toString()
+      return @"<IrcMessage> raw: '$self.rawMessage'"
+   end
+end
+
+/*
+ * NOTICE AUTH :*** Checking ident
+ * NOTICE falbot :*** Your host is simmons.freenode.net[simmons.freenode.net/6667], running version hyperion-1.0.2b
+ */
+ 
+class IrcNoticeMessage( raw, re ) from IrcMessage( raw, re )
+   toWho   = nil
+   message = nil
+   
+   init
+      self.toWho   = self.rawMessage[ self.re.captured( 1 ) ]
+      self.message = self.rawMessage[ self.re.captured( 2 ) ]
+   end
+   
+   function toString()
+      return @"<Notice Message> to: '$self.toWho' message: '$self.message'"
+   end
+end
+
+/*
+ * PING :simmons.freenode.net
+ */
+ 
+class IrcPingMessage( raw, re ) from IrcMessage( raw, re )
+   pingFrom = nil
+   
+   init
+      self.pingFrom = strSplit( self.rawMessage[ self.re.captured( 1 ) ], "," )
+   end
+   
+   function toString()
+      f = strMerge( self.pingFrom, " and " )
+      return @"<Ping Message> from: $f"
+   end
+end
+
+/*
+ * :jeremy_c!n=jeremy_c@cpe-71-74-145-210.neo.res.rr.com JOIN :#falconpl
+ */
+ 
+class IrcJoinMessage( raw ) from IrcMessage( raw )
+   user    = nil
+   channel = nil
+   
+   init
+      self.user    = self.rawMessage[ self.re.captured( 1 ) ]
+      self.channel = self.rawMessage[ self.re.captured( 2 ) ]
+   end
+   
+   function toString()
+      return @"<Join Message> $self.user JOINED $self.channel"
+   end
+end
+
+/*
+ * :jeremy_c!n=jeremy@cpe-71-74-145-210.neo.res.rr.com PRIVMSG #johndoey :hello.
+ */
+ 
+class IrcPrivateMessage( raw ) from IrcMessage( raw )
+   nick    = nil
+   host    = nil
+   channel = nil
+   said    = nil
+   
+   init
+      self.nick    = self.rawMessage[ self.re.captured( 1 ) ]
+      self.host    = self.rawMessage[ self.re.captured( 2 ) ]
+      self.channel = self.rawMessage[ self.re.captured( 3 ) ]
+      self.said    = self.rawMessage[ self.re.captured( 4 ) ]
+   end
+   
+   function toString()
+      return @"<Private Message> $self.nick ($self.host) ON $self.channel SAID $self.said"
+   end
+end
+
+/*
+ * :jeremy_c!n=jeremy@cpe-71-74-145-210.neo.res.rr.com PART #johndoey :"Leaving"
+ */
+ 
+class IrcPartMessage( raw, re ) from IrcMessage( raw, re )
+   nick    = nil
+   host    = nil
+   channel = nil
+   message = nil
+
+   init
+      self.nick    = self.rawMessage[ self.re.captured( 1 ) ]
+      self.host    = self.rawMessage[ self.re.captured( 2 ) ]
+      self.channel = self.rawMessage[ self.re.captured( 3 ) ]
+      self.message = self.rawMessage[ self.re.captured( 4 ) ]
+   end
+
+   function toString()
+      return @"<Part Message> $self.user PARTED FROM $self.channel SAYING $self.message"
+   end
+end
+
+class IrcMessagePair( nR, nC )
+   r = nR
+   c = nC
+end
+
+class IrcClient( nServer, nNick, nRealname) from TCPSocket
+   zero     = nil
+   buf      = nil
+   port     = nil
+   server   = nServer
+   nick     = nNick
+   realname = nRealname
+
+   messages = [ IrcMessagePair( Regex( "NOTICE (\\w+) :(.*$)" ),
+                                IrcNoticeMessage ),
+
+                IrcMessagePair( Regex( "PING :(.*)$" ),
+                                IrcPingMessage ),
+
+                IrcMessagePair( Regex( ":(.*)!(.*) JOIN :(.*)$" ),
+                                IrcJoinMessage ),
+
+                IrcMessagePair( Regex( ":(.*)!(.*) PART (.*)$" ),
+                                IrcPartMessage ),
+
+                IrcMessagePair( Regex( ":(.*)!(.*) PRIVMSG (.*) :(.*)$" ),
+                                IrcPrivateMessage )
+              ]
+
+   init
+      self.port = 6667
+      self.buf = strBuffer( 4096 )
+      self.zero = 0
+   end
+
+   function processBuffer()
+      for p in self.messages
+         if p.r.match( self.buf )
+            return p.c( self.buf, p.r )
+         end
+      end
+
+      > "Unknown message"
+      return nil
+   end
+
+   function connect()
+      > "Connecting to server: ", self.server
+      if self.TCPSocket.connect( self.server, toString( self.port ) ) == 1
+         self.send( "NICK " + self.nick )
+         self.send( "USER falbot 0 * :" + self.realname )
+         self.onConnect()
+      end
+   end
+
+   function send( msg )
+      return self.TCPSocket.send( msg + "\r\n" )
+   end
+
+   function readline()
+      if self.recv( self.buf ) == 0
+         // TODO: bad way to handle an error
+         self.zero = self.zero + 1
+         if self.zero > 3
+            > "Lost connection"
+            self.dispose()
+            exit(1)
+         end
+         return nil
+      end
+      return 1
+   end
+
+   function readMessage()
+      if self.readline()
+         return self.processBuffer()
+      end
+
+      return nil
+   end
+
+   function checkNetwork()
+      if self.readAvailable(0)
+         m = self.readMessage()
+         if m == nil
+            > "Could not parse message: '", self.buf, "'"
+            return
+         end
+         
+         select m
+         case IrcNoticeMessage
+            self.onNotice( m )
+         case IrcPingMessage
+            self.onPing( m )
+         case IrcJoinMessage
+            self.onJoin( m )
+         case IrcPrivateMessage
+            self.onPrivateMessage( m )
+         case IrcPartMessage
+            self.onPart( m )
+         end
+
+         if not m
+            > "Could not parse message: '", self.buf, "'"
+         end
+      end
+   end
+
+   function message( toWho, message )
+      return self.send( @"PRIVMSG $(toWho) :$(message)" )
+   end
+
+   function quit( message )
+      self.send( @"QUIT :$(message)" )
+      self.dispose()
+      exit( 0 )
+   end
+
+   function onConnect()
+   end
+
+   function onDisconnect()
+   end
+
+   function onNotice( message )
+      > message
+   end
+
+   function onPrivateMessage( message )
+      > message
+   end
+   
+   function onJoin( message )
+      > message
+   end
+   
+   function onPart( message )
+      > message
+   end
+
+   function onPing( message )
+      > message
+      self.send( "PONG " + message.pingFrom[ 0 ] )
+   end
+end
+
+export IrcClient

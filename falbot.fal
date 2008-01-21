@@ -1,0 +1,26 @@
+load ircclient
+
+class FalBot( host, nick, name ) from IrcClient( host, nick, name )
+   function onPrivateMessage( message )
+      > "<FalBot> ", message
+      
+      if strFind( message.said, self.nick ) == 0
+         self.onMessageToMe( message )
+      end
+   end
+   
+   function onMessageToMe( message )
+      > "<FalBot> Message to Me"
+      self.message( message.channel, @"$message.nick : howdy there partner, you said: " + message.toString() )
+   end
+end
+
+i = FalBot( "irc.freenode.net", "falbot", "FalconBOT" )
+i.setTimeout( 2000 )
+i.connect()
+i.send( "JOIN :#johndoey" )
+
+while true
+   sleep( 0.5 )
+   i.checkNetwork()
+end
