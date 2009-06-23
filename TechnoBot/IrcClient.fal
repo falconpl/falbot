@@ -11,10 +11,10 @@ export IrcClient
 
 // Copy begins here from ircclient.fal
 
-class IrcMessage( raw, nRe, nIrcC )
+class IrcMessage( raw, nRe, nClient )
     rawMessage = raw
     re = nRe
-    IrcC = nIrcC
+    client = nClient
    
     function name()
         return self.className()
@@ -30,7 +30,7 @@ end
  * NOTICE falbot :*** Your host is simmons.freenode.net[simmons.freenode.net/6667], running version hyperion-1.0.2b
  */
  
-class IrcNoticeMessage( raw, re, IrcC ) from IrcMessage( raw, re, IrcC )
+class IrcNoticeMessage( raw, re, client ) from IrcMessage( raw, re, client )
    toWho   = nil
    message = nil
    
@@ -48,7 +48,7 @@ end
  * PING :simmons.freenode.net
  */
  
-class IrcPingMessage( raw, re, IrcC ) from IrcMessage( raw, re, IrcC )
+class IrcPingMessage( raw, re, client ) from IrcMessage( raw, re, client )
    pingFrom = nil
    
    init
@@ -65,7 +65,7 @@ end
  * :jeremy_c!n=jeremy_c@cpe-71-74-145-210.neo.res.rr.com JOIN :#falconpl
  */
  
-class IrcJoinMessage( raw, re, IrcC ) from IrcMessage( raw, re, IrcC )
+class IrcJoinMessage( raw, re, client ) from IrcMessage( raw, re, client )
    user    = nil
    channel = nil
    
@@ -83,7 +83,7 @@ end
  * :jeremy_c!n=jeremy@cpe-71-74-145-210.neo.res.rr.com PRIVMSG #johndoey :hello.
  */
  
-class IrcPrivateMessage( raw, re, IrcC ) from IrcMessage( raw, re, IrcC )
+class IrcPrivateMessage( raw, re, client ) from IrcMessage( raw, re, client )
    nick    = nil
    host    = nil
    channel = nil
@@ -105,7 +105,7 @@ end
  * :jeremy_c!n=jeremy@cpe-71-74-145-210.neo.res.rr.com PART #johndoey :"Leaving"
  */
  
-class IrcPartMessage( raw, re, IrcC ) from IrcMessage( raw, re, IrcC )
+class IrcPartMessage( raw, re, client ) from IrcMessage( raw, re, client )
    nick    = nil
    host    = nil
    channel = nil
@@ -209,7 +209,7 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     
     function pong(message)
         > "Ponging: " + message.pingFrom[ 0 ]
-        message.IrcC.send( "PONG " + message.pingFrom[ 0 ] )
+        message.client.send( "PONG " + message.pingFrom[ 0 ] )
     end
     
     function connectionHandler()

@@ -1,15 +1,60 @@
 load IrcClient
 
-test = IrcClient("irc.freenode.net", 6667, "TechnoBot", "Techno's Bot", "Freenode Bot")
+host = nil
+channel = nil
+port = 6667
+
+cmd.parse()
+
+if not host or not channel
+    > "You must give a host and channel"
+    exit(1)
+end
+
+test = IrcClient(host, port, "TechnoBot", "Techno's Bot", "Bot")
 
 test.connect()
-test.send("JOIN #falcon")
+test.send(@"JOIN $channel")
 
-subscribe("IrcPrivateMessage", messagehandler)
-subscribe("IrcNoticeMessage", messagehandler)
-subscribe("IrcMessage", messagehandler)
+subscribe("IrcPrivateMessage", privMessageHandler)
+subscribe("IrcNoticeMessage", messageHandler)
+subscribe("IrcMessage", messageHandler)
 
 
-function messagehandler(message)
+
+function messageHandler(message)
     > message
+end
+
+function privMessageHandler(message)
+    if message.channel == channel
+        if message.said.find("TechnoBot") >= 0
+            message.client.sendTo(channel, "Is someone talking about me?")
+        end
+    end
+end
+
+class cmd from CmdlineParser
+    
+    function onOption( option )
+        switch option
+            case "h", "host", "p", "port", "c", "channel"
+                self.expectValue()
+            default
+                > "Unrecognised option"
+                exit(1)
+        end
+    end
+   
+    function onValue( option, value)
+        switch option
+            case "h", "host"
+                host = value
+            case "p", "port"
+                port = value
+            case "c", "channel"
+                channel = value
+        end
+    end
+   
 end
