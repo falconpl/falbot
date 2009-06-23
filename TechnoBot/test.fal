@@ -4,9 +4,10 @@ host = nil
 channel = nil
 port = 6667
 
+cmd = cmdP()
 cmd.parse()
 
-if not host or not channel
+if (host == nil) or (channel == nil)
     > "You must give a host and channel"
     exit(1)
 end
@@ -27,6 +28,7 @@ function messageHandler(message)
 end
 
 function privMessageHandler(message)
+    > message
     if message.channel == channel
         if message.said.find("TechnoBot") >= 0
             message.client.sendTo(channel, "Is someone talking about me?")
@@ -34,7 +36,7 @@ function privMessageHandler(message)
     end
 end
 
-class cmd from CmdlineParser
+class cmdP from CmdlineParser
     
     function onOption( option )
         switch option
@@ -47,12 +49,16 @@ class cmd from CmdlineParser
     end
    
     function onValue( option, value)
+        global host, port, channel
         switch option
             case "h", "host"
+                > "host: " + value
                 host = value
             case "p", "port"
+                > "port: " + value
                 port = value
             case "c", "channel"
+                > "channel: " + value
                 channel = value
         end
     end
