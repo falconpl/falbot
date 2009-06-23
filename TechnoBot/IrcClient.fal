@@ -175,10 +175,6 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         return ((self.TCPSocket.send(msg + "\n\r")) > 0)
     end
     
-    function sendTo( name, msg)
-        return ((self.send(@"PRIVMSG $name :$msg")) > 0)
-    end
-    
     function read()
         
         self.buff = self.TCPSocket.recv( 4096)
@@ -203,6 +199,27 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         end
     end
     
+    function connectionHandler()
+        while true
+            line = self.readline()
+            if line
+                for p in self.messages
+                    if p.regex.match( line )
+                        message = p.message( line, p.regex, self )
+                        broadcast(message.name(), message)
+                        break
+                    end
+                end
+            end
+            sleep(0.01)
+        end
+    end
+    
+    // Methods for various IRC commands.
+    function sendTo( name, msg)
+        return ((self.send(@"PRIVMSG $name :$msg")) > 0)
+    end
+    
     function login()
         self.send(@"NICK :$self.nick")
         self.send(@"USER $self.nick 0 * :$self.name")
@@ -220,19 +237,19 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         self.send("QUIT " + reason)
     end
     
-    function connectionHandler()
-        while true
-            line = self.readline()
-            if line
-                for p in self.messages
-                    if p.regex.match( line )
-                        message = p.message( line, p.regex, self )
-                        broadcast(message.name(), message)
-                        break
-                    end
-                end
-            end
-            sleep(0.01)
-        end
+    function join(channel)
+        self.send(@"JOIN $channel")
     end
+    
+    function kick(nick, reason)
+        if not reason
+            reason = ""
+        end
+        self.send(@"KICK $nick :$reason")
+    end
+    
+    function part(channel)
+        self.send(@"PART $channel")
+    end
+        
 end

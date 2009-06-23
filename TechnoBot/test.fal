@@ -3,14 +3,21 @@ load IrcClient
 host = nil
 channel = nil
 port = 6667
+useage = "test.fal -h hostname -c channel [-p port]" +
+         "optionally -h can be --host" +
+         "           -c can be --channel" +
+         "           -p can be --port"
 
 cmd = cmdP()
 cmd.parse()
 
 if (host == nil) or (channel == nil)
     > "You must give a host and channel"
+    > usage
     exit(1)
 end
+
+
 
 test = IrcClient(host, port, "TechnoBot", "Techno's Bot", "TechnoBot")
 
@@ -49,7 +56,7 @@ class cmdP from CmdlineParser
             case "h", "host", "p", "port", "c", "channel"
                 self.expectValue()
             default
-                > "Unrecognised option"
+                > usage
                 exit(1)
         end
     end
