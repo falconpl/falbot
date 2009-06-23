@@ -163,6 +163,7 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         end
         self.logStream.writeText( "done.\n")
         self.logStream.writeText( "Connected, Logging in\n")
+        self.logStream.flush()
         self.TCPSocket.setTimeout(0.1)
         self.login()
         launch self.connectionHandler()
@@ -210,6 +211,13 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     function pong(message)
         > "Ponging: " + message.pingFrom[ 0 ]
         message.client.send( "PONG " + message.pingFrom[ 0 ] )
+    end
+    
+    function quit(reason)
+        if not reason
+            reason = ""
+        end
+        self.send("QUIT " + reason)
     end
     
     function connectionHandler()

@@ -12,7 +12,7 @@ if (host == nil) or (channel == nil)
     exit(1)
 end
 
-test = IrcClient(host, port, "TechnoBot", "Techno's Bot", "Bot")
+test = IrcClient(host, port, "TechnoBot", "Techno's Bot", "TechnoBot")
 
 test.connect()
 test.send(@"JOIN $channel")
@@ -30,8 +30,14 @@ end
 function privMessageHandler(message)
     > message
     if message.channel == channel
-        if message.said.find("TechnoBot") >= 0
-            message.client.sendTo(channel, "Is someone talking about me?")
+        said = message.said.lower()
+        if said.find("technobot") >= 0
+            if said.find("quit") >= 0
+                message.client.quit()
+                exit(0)
+            else
+                message.client.sendTo(channel, "Is someone talking about me?")
+            end
         end
     end
 end
