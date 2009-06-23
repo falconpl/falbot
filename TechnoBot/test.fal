@@ -1,6 +1,6 @@
-load IRCClient
+load IrcClient
 
-test = IRCClient("irc.freenode.net", 6667, "TechnoBot", "Techno's Bot", "Freenode Bot")
+test = IrcClient("irc.freenode.net", 6667, "TechnoBot", "Techno's Bot", "Freenode Bot")
 
 test.connect()
 test.send("JOIN #falcon")
