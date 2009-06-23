@@ -1,0 +1,30 @@
+
+load IrcClient
+//test = IrcClient("irc.freenode.net", 6667, "TechnoBot", "Techno's Bot", "Freenode Bot")
+//test2 = IrcClient("irc.entirelyrandom.net", 6667, "TechnoBot", "Techno's Bot", "EntirelyRandom Bot")
+local = IrcClient("localhost", 6667, "TechnoBot", "Techno's Bot", "Local Bot")
+//test.connect()
+//test.send("JOIN #falcon")
+//test2.connect()
+//test2.send("JOIN #chat")
+local.connect()
+local.send("JOIN #test")
+
+subscribe("IrcPrivateMessage", messagehandler)
+subscribe("IrcNoticeMessage", messagehandler)
+subscribe("IrcMessage", messagehandler)
+
+
+function messagehandler(message)
+    message.logStream.writeText(toString( message) + "\n")
+end
+
+class IrcBot(nHost, nPort, nNick, nName, nBotName, logFile)
+    IrcClient = nil
+    init
+        IrcClient = IrcClient(nHost, nPort, nName, nBotName, logFile)
+    end
+    
+    
+    
+end 

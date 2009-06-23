@@ -1,0 +1,15 @@
+load IRCClient
+
+test = IRCClient("irc.freenode.net", 6667, "TechnoBot", "Techno's Bot", "Freenode Bot")
+
+test.connect()
+test.send("JOIN #falcon")
+
+subscribe("IrcPrivateMessage", messagehandler)
+subscribe("IrcNoticeMessage", messagehandler)
+subscribe("IrcMessage", messagehandler)
+
+
+function messagehandler(message)
+    > message
+end
