@@ -234,22 +234,36 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         if not reason
             reason = ""
         end
-        self.send("QUIT " + reason)
+        self.send( "QUIT " + reason)
     end
     
     function join(channel)
         self.send(@"JOIN $channel")
     end
     
-    function kick(nick, reason)
+    function kick(channel, nick, reason)
         if not reason
             reason = ""
         end
-        self.send(@"KICK $nick :$reason")
+        self.send(@"KICK $channel $nick :$reason")
+    end
+    
+    function ban(channel, nick, reason)
+        if not reason
+            reason = ""
+        end
+        self.send(@"KICK $channel $nick :$reason")
     end
     
     function part(channel)
         self.send(@"PART $channel")
+    end
+    
+    function mode(channelOrNick, mode, limit, user, banMask)
+        limit = limit ? limit : ""
+        user = user ? user : ""
+        banMask = banMask ? banMask : ""
+        self.send(@"MODE $channelOrNick $mode $limit $user $banMask")
     end
         
 end

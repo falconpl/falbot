@@ -1,12 +1,13 @@
 load IrcClient
+load compiler
 
 host = nil
 channel = nil
 port = 6667
-useage = "test.fal -h hostname -c channel [-p port]" +
-         "optionally -h can be --host" +
-         "           -c can be --channel" +
-         "           -p can be --port"
+usage = "test.fal -h hostname -c channel [-p port]\n" +
+         "optionally -h can be --host\n" +
+         "           -c can be --channel\n" +
+         "           -p can be --port\n"
 
 cmd = cmdP()
 cmd.parse()
@@ -17,9 +18,11 @@ if (host == nil) or (channel == nil)
     exit(1)
 end
 
+comp = Compiler()
 
 
-test = IrcClient(host, port, "TechnoBot", "Techno's Bot", "TechnoBot")
+
+test = IrcClient(host, port, "FalBot", "Falcon Bot", "FalBot")
 
 test.connect()
 test.send(@"JOIN $channel")
@@ -28,22 +31,37 @@ subscribe("IrcPrivateMessage", privMessageHandler)
 subscribe("IrcNoticeMessage", messageHandler)
 subscribe("IrcMessage", messageHandler)
 
-
+evalCommand = Regex( "!eval (.*)", "i")
 
 function messageHandler(message)
     > message
 end
 
+
 function privMessageHandler(message)
     > message
     if message.channel == channel
         said = message.said.lower()
-        if said.find("technobot") >= 0
+        if (said.find("falbot") >= 0) and (message.nick == "OmniMancer")
             if said.find("quit") >= 0
                 message.client.quit()
                 exit(0)
-            else
-                message.client.sendTo(channel, "Is someone talking about me?")
+            end
+        elif evalCommand.match(message.said)
+            try
+                evalMod = comp.compile("IrcEval", message.said[evalCommand.captured(1)])
+                ircStream = StringStream()
+                oldStdOut = stdOut(ircStream)
+                > "Result: " +  evalMod.get("__main__")()
+                stdOut(oldStdOut)
+                ircOut = ircStream.closeToString()
+                ircOut.replace("\n\r", "\n")
+                ircOut.replace("\r", "\n")
+                for line in ircOut.split("\n")
+                    message.client.sendTo(message.channel, line)
+                end
+            catch CodeError in e
+                message.client.sendTo(message.channel, toString(e))
             end
         end
     end
