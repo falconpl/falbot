@@ -1,10 +1,11 @@
-load IrcBot
+load IrcClient
 
 logger = IrcClient("irc.freenode.net", 6667, "Fal Bot", "Falcon Bot", "Falbot")
 subscribe("IrcPrivateMessage", {message =>
                                     message.client.log(message.nick + ": " + message.said)
                                })
 logger.connect()
+logger.join("#falcon")
 
 launch {=>  time = CurrentTime()
             while true
@@ -15,4 +16,4 @@ launch {=>  time = CurrentTime()
                 time = newTime
                 sleep(60)
             end
-       }
+       }()

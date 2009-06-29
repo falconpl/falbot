@@ -244,10 +244,10 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
                       .[ Regex( "PING :(.*)$" )                                                 IrcPingMessage      ],
                       .[ Regex( ":(.*)!(.*) JOIN :(.*)$" )                                      IrcJoinMessage      ],
                       .[ Regex( ":(.*)!(.*) PART (.*) :(.*)$" )                                 IrcPartMessage      ],
-                      .[ Regex( ":(.*)!(.*) PRIVMSG ([^:]*) :(.*)$")                            IrcPrivateMessage   ],
-                      .[ Regex( ":([^ ]*) ([[:digit:]]{3}) ([^: ]*) (#[^: \a,])? :(.*)$")       IrcNumericMessage   ],
-                      .[ Regex( ":(.*)!(.*) MODE ([^ ]*) ([+-])([A-Za-z]+) ([^ ]*)?)$")         IrcModeMessage      ], 
-                      .[ Regex( ":(.*)$")                                                       IrcMessage          ]
+                      .[ Regex( ":(.*)!(.*) PRIVMSG ([^:]*) :(.*)$" )                           IrcPrivateMessage   ],
+                      .[ Regex( ":([^ ]*) ([[:digit:]]{3}) ([^: ]*) (#[^: \a,])? :(.*)$" )      IrcNumericMessage   ],
+                      .[ Regex( ":(.*)!(.*) MODE ([^ ]*) ([+-])([A-Za-z]+) ([^ ]*)?$" )        IrcModeMessage      ], 
+                      .[ Regex( ":(.*)$" )                                                      IrcMessage          ]
               )
     //end
     
