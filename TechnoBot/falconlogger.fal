@@ -1,0 +1,18 @@
+load IrcBot
+
+logger = IrcClient("irc.freenode.net", 6667, "Fal Bot", "Falcon Bot", "Falbot")
+subscribe("IrcPrivateMessage", {message =>
+                                    message.client.log(message.nick + ": " + message.said)
+                               })
+logger.connect()
+
+launch {=>  time = CurrentTime()
+            while true
+                newTime = CurrentTime()
+                if newTime.day > time.day
+                    logger.GenerateLogFile()
+                end
+                time = newTime
+                sleep(60)
+            end
+       }

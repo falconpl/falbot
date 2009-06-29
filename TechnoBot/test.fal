@@ -18,9 +18,6 @@ if (host == nil) or (channel == nil)
     exit(1)
 end
 
-comp = Compiler()
-
-
 
 test = IrcClient(host, port, "FalBot", "Falcon Bot", "FalBot")
 
@@ -31,38 +28,88 @@ subscribe("IrcPrivateMessage", privMessageHandler)
 subscribe("IrcNoticeMessage", messageHandler)
 subscribe("IrcMessage", messageHandler)
 
-evalCommand = Regex( "!eval (.*)", "i")
+evalCommand = Regex( "^!eval (.*)$", "i")
 
 function messageHandler(message)
     > message
 end
 
-
+function IrcEval(string, message, reset)
+    static
+        evalString = ""
+        comp = ICompiler()
+    end
+    if (evalString == "")
+        evalString = string
+    elif reset
+        evalString = ""
+        comp.reset()
+    else
+        evalString += string
+    end
+    try
+        evalStream = StringStream()
+        comp.stdOut = evalStream
+        comp.stdErr = evalStream
+        evalStream.writeString( "Compiling: " + string + "\n")
+        status = comp.compileNext("IrcEval", evalString)
+        
+        
+        if status == comp.NOTHING
+            evalStream.writeString( "No action performed." )
+        
+        elif status == comp.MORE
+            evalStream.writeString( "More input required." )
+        
+        elif status == comp.INCOMPLETE
+            evalStream.writeString( "Incomplete Statement, more input required." )
+        
+        elif status == comp.DECL
+            evalStream.writeString( "Declaration compiled." )
+        
+        elif status == comp.STATEMENT
+            evalStream.writeString( "Statement compiled and executed." )
+        
+        elif status == comp.EXPRESSION
+            evalStream.writeString( "Expression compiled and executed." )
+            evalStream.writeString( "Result: " + comp.result + "\n" ) 
+        
+        elif status == comp.CALL
+            evalStream.writeString( "Call compiled and evaluated" )
+            if comp.result != nil
+                evalStream.writeString( "Result: " + comp.result + "\n" ) 
+            end
+        end
+         
+        ircOut = evalStream.closeToString()
+        ircOut.replace( "\n\r", "\n")
+        ircOut.replace( "\r", "\n")
+        for line in ircOut.split( "\n" )
+            message.client.sendTo(message.channel, line)
+        end
+        
+    catch CodeError in e
+        for err in e.subErrors
+            message.client.sendTo(message.channel, toString(err))
+        end
+    catch Error in e
+        message.client.sendTo(message.channel, toString(e))
+    end
+end
+    
 function privMessageHandler(message)
     > message
     if message.channel == channel
         said = message.said.lower()
         if (said.find("falbot") >= 0) and (message.nick == "OmniMancer")
             if said.find("quit") >= 0
-                message.client.quit()
+                message.client.quit( "OmniMancer told me to!")
                 exit(0)
             end
         elif evalCommand.match(message.said)
-            try
-                evalMod = comp.compile("IrcEval", message.said[evalCommand.captured(1)])
-                ircStream = StringStream()
-                oldStdOut = stdOut(ircStream)
-                > "Result: " +  evalMod.get("__main__")()
-                stdOut(oldStdOut)
-                ircOut = ircStream.closeToString()
-                ircOut.replace("\n\r", "\n")
-                ircOut.replace("\r", "\n")
-                for line in ircOut.split("\n")
-                    message.client.sendTo(message.channel, line)
-                end
-            catch CodeError in e
-                message.client.sendTo(message.channel, toString(e))
-            end
+            codeSnippet = message.said[evalCommand.captured(1)]
+            reset = codeSnippet.lower() == "*reset*" ? true : false  
+            IrcEval(codeSnippet, message, reset)
         end
     end
 end

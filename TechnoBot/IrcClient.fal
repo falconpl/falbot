@@ -4,7 +4,7 @@ load regex
 export IrcClient
 
 /* Parts of this file are from the ircclient.fal from the simple IRC bot 
- * Used with kind permission form the author, perhaps this file will replace that one soon.
+ * Used with kind permission form the author, Jeremy Cowgar(jeremy_c), perhaps this file will replace that one soon.
  * The message objects and message matcher were what was taken mainly.
  * Paul Davey, TechnoMancer
  */
@@ -19,10 +19,21 @@ class IrcMessage( raw, nRe, nClient )
     function name()
         return self.className()
     end
-   
+    
+    function match(pattern)
+        match = true
+        if pattern.rawMessage
+            match = (self.rawMessage == pattern.rawMessage) and match
+        end
+        if pattern.client
+            match = (self.client == pattern.client) and match
+        end
+        return match
+    end
+    
     function toString()
-        return @"<IrcMessage> raw: \"$self.rawMessage\""
-   end
+        return @ "<IrcMessage> raw: \"$self.rawMessage\""
+    end
 end
 
 /*
@@ -31,17 +42,28 @@ end
  */
  
 class IrcNoticeMessage( raw, re, client ) from IrcMessage( raw, re, client )
-   toWho   = nil
-   message = nil
+    toWho   = nil
+    message = nil
+    
+    init
+        self.toWho   = self.rawMessage[ self.re.captured( 1 ) ]
+        self.message = self.rawMessage[ self.re.captured( 2 ) ]
+    end
+    
+    function match(pattern)
+        match = self.IrcMessage.match(pattern) and true
+        if pattern.toWho
+            match = (self.toWho == pattern.toWho) and match
+        end
+        if pattern.message
+            match = (self.message == pattern.message) and match
+        end
+        return match
+    end
    
-   init
-      self.toWho   = self.rawMessage[ self.re.captured( 1 ) ]
-      self.message = self.rawMessage[ self.re.captured( 2 ) ]
-   end
-   
-   function toString()
-      return @"<Notice Message> to: \"$self.toWho\" message: \"$self.message\""
-   end
+    function toString()
+        return @ "<Notice Message> to: \"$self.toWho\" message: \"$self.message\""
+    end
 end
 
 /*
@@ -49,16 +71,24 @@ end
  */
  
 class IrcPingMessage( raw, re, client ) from IrcMessage( raw, re, client )
-   pingFrom = nil
-   
-   init
-      self.pingFrom = strSplit( self.rawMessage[ self.re.captured( 1 ) ], "," )
-   end
-   
-   function toString()
-      f = strMerge( self.pingFrom, " and " )
-      return @"<Ping Message> from: $f"
-   end
+    pingFrom = nil
+    
+    init
+        self.pingFrom = strSplit( self.rawMessage[ self.re.captured( 1 ) ], "," )
+    end
+    
+    function match(pattern)
+        match = self.IrcMessage.match(pattern)
+        if pattern.pingFrom
+            match = (self.pingFrom == pattern.pingFrom) and match
+        end
+        return match
+    end
+    
+    function toString()
+        f = strMerge( self.pingFrom, " and " )
+        return @"<Ping Message> from: $f"
+    end
 end
 
 /*
@@ -66,17 +96,17 @@ end
  */
  
 class IrcJoinMessage( raw, re, client ) from IrcMessage( raw, re, client )
-   user    = nil
-   channel = nil
-   
-   init
-      self.user    = self.rawMessage[ self.re.captured( 1 ) ]
-      self.channel = self.rawMessage[ self.re.captured( 2 ) ]
-   end
-   
-   function toString()
-      return @"<Join Message> $self.user JOINED $self.channel"
-   end
+    user    = nil
+    channel = nil
+    
+    init
+        self.user    = self.rawMessage[ self.re.captured( 1 ) ]
+        self.channel = self.rawMessage[ self.re.captured( 2 ) ]
+    end
+    
+    function toString()
+        return @"<Join Message> $self.user JOINED $self.channel"
+    end
 end
 
 /*
@@ -84,21 +114,21 @@ end
  */
  
 class IrcPrivateMessage( raw, re, client ) from IrcMessage( raw, re, client )
-   nick    = nil
-   host    = nil
-   channel = nil
-   said    = nil
+    nick    = nil
+    host    = nil
+    channel = nil
+    said    = nil
+    
+    init
+        self.nick    = self.rawMessage[ self.re.captured( 1 ) ]
+        self.host    = self.rawMessage[ self.re.captured( 2 ) ]
+        self.channel = self.rawMessage[ self.re.captured( 3 ) ]
+        self.said    = self.rawMessage[ self.re.captured( 4 ) ]
+    end
    
-   init
-      self.nick    = self.rawMessage[ self.re.captured( 1 ) ]
-      self.host    = self.rawMessage[ self.re.captured( 2 ) ]
-      self.channel = self.rawMessage[ self.re.captured( 3 ) ]
-      self.said    = self.rawMessage[ self.re.captured( 4 ) ]
-   end
-   
-   function toString()
-      return @"<Private Message> $self.nick ($self.host) ON $self.channel SAID $self.said"
-   end
+    function toString()
+        return @"<Private Message> $self.nick ($self.host) ON $self.channel SAID $self.said"
+    end
 end
 
 /*
@@ -106,25 +136,97 @@ end
  */
  
 class IrcPartMessage( raw, re, client ) from IrcMessage( raw, re, client )
-   nick    = nil
-   host    = nil
-   channel = nil
-   message = nil
+    nick    = nil
+    host    = nil
+    channel = nil
+    message = nil
 
-   init
-      self.nick    = self.rawMessage[ self.re.captured( 1 ) ]
-      self.host    = self.rawMessage[ self.re.captured( 2 ) ]
-      self.channel = self.rawMessage[ self.re.captured( 3 ) ]
-      self.message = self.rawMessage[ self.re.captured( 4 ) ]
-   end
+    init
+        self.nick    = self.rawMessage[ self.re.captured( 1 ) ]
+        self.host    = self.rawMessage[ self.re.captured( 2 ) ]
+        self.channel = self.rawMessage[ self.re.captured( 3 ) ]
+        self.message = self.rawMessage[ self.re.captured( 4 ) ]
+    end
 
-   function toString()
-      return @"<Part Message> $self.nick PARTED FROM $self.channel SAYING $self.message"
-   end
+    function toString()
+        return @ "<Part Message> $self.nick PARTED FROM $self.channel SAYING $self.message"
+    end
 end
 
 //Copy ends here from ircclient.fal
 
+class IrcNumericMessage(raw, re, client) from IrcMessage(raw, re, client)
+    host = nil
+    code = nil
+    nick = nil
+    channel = nil
+    message = nil
+    
+    init
+        host =      self.rawMessage[ self.re.captured( 1 ) ]
+        code = int( self.rawMessage[ self.re.captured( 2 ) ] )
+        nick =      self.rawMessage[ self.re.captured( 3 ) ]
+        channel =   self.rawMessage[ self.re.captured( 4 ) ]
+        message =   self.rawMessage[ self.re.captured( 5 ) ]
+        if not channel
+            channel = ""
+        end
+    end
+    
+    function match(pattern)
+        match = self.IrcMessage.match(pattern)
+        if pattern.host
+            match = (self.host == pattern.host) and match
+        end
+        if pattern.code
+            match = (self.code == pattern.code) and match
+        end
+        if pattern.nick
+            match = (self.nick == pattern.nick) and match
+        end
+        if pattern.channel
+            if self.channel
+                match = (self.channel == pattern.channel) and match
+            else
+                match = false and match
+            end
+        end
+        if pattern.message
+            match = (self.message == pattern.message) and match
+        end
+        return match
+    end
+    
+    function toString()
+        if self.channel
+            return @ "<Numeric Message> $self.host SENT $self.code TO $self.nick SENT $self.message"
+        else
+            return @ "<Numeric Message> $self.host SENT $self.code TO $self.nick IN $self.channel SENT $self.message"
+        end
+    end
+end
+
+/*
+ * :Matt!bwctadmin@netadmin.spam.entirelyrandom.net MODE #chat + q Matt"
+ */
+
+class IrcModeMessage(raw, re, client) from IrcMessage(raw, re, client)
+    nick = nil
+    host = nil
+    op = nil
+    mode = nil
+    channel = nil
+    parameter = nil
+    
+    init
+        nick = self.rawMessage[ self.re.captured( 1 ) ]
+        host = self.rawMessage[ self.re.captured( 2 ) ]
+        op   = self.rawMessage[ self.re.captured( 3 ) ]
+        mode = self.rawMessage[ self.re.captured( 4 ) ]
+        channel = self.rawMessage[ self.re.captured( 5 ) ]
+        parameter = self.rawMessage[ self.re.captured( 6 ) ]
+    end
+end
 class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     host = nHost
     port = nPort
@@ -137,32 +239,38 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     special = "" * 0x263a
     
     //inspired by the message matching in ircclient.fal
-    messages = Table( .[ "regex"                                            "message"          ],
-                      .[ Regex( "NOTICE (\\w+) :(.*$)" )                    IrcNoticeMessage   ],
-                      .[ Regex( "PING :(.*)$" )                             IrcPingMessage     ],
-                      .[ Regex( ":(.*)!(.*) JOIN :(.*)$" )                  IrcJoinMessage     ],
-                      .[ Regex( ":(.*)!(.*) PART (.*) :(.*)$" )             IrcPartMessage     ],
-                      .[ Regex( ":(.*)!(.*) PRIVMSG ([^:]*) :(.*)$", "g" )    IrcPrivateMessage  ],
-                      .[ Regex( ":(.*)!(.*)$")                              IrcMessage         ]
+    messages = Table( .[ "regex"                                                                "message"           ],
+                      .[ Regex( "NOTICE (\\w+) :(.*$)" )                                        IrcNoticeMessage    ],
+                      .[ Regex( "PING :(.*)$" )                                                 IrcPingMessage      ],
+                      .[ Regex( ":(.*)!(.*) JOIN :(.*)$" )                                      IrcJoinMessage      ],
+                      .[ Regex( ":(.*)!(.*) PART (.*) :(.*)$" )                                 IrcPartMessage      ],
+                      .[ Regex( ":(.*)!(.*) PRIVMSG ([^:]*) :(.*)$")                            IrcPrivateMessage   ],
+                      .[ Regex( ":([^ ]*) ([[:digit:]]{3}) ([^: ]*) (#[^: \a,])? :(.*)$")       IrcNumericMessage   ],
+                      .[ Regex( ":(.*)!(.*) MODE ([^ ]*) ([+-])([A-Za-z]+) ([^ ]*)?)$")         IrcModeMessage      ], 
+                      .[ Regex( ":(.*)$")                                                       IrcMessage          ]
               )
     //end
     
     init
     if self.logStream == nil
-        time = CurrentTime().toRFC2822().replace(" ", "_").replace(":", "_").replace("+", "p")
-        self.logStream = OutputStream(@"Log-$(time)-$(self.clientName).log")
+        self.generateLogFile()
     end
+    end
+    
+    function generateLogFile()
+        time = CurrentTime().toRFC2822().replace(" ", "_").replace(":", "_").replace("+", "p").replace("-", "m")
+        self.logStream = OutputStream(@"Log-$(time)-$(self.clientName).log")
     end
     
     function connect()
         self.TCPSocket.setTimeout(0)
-        self.logStream.writeText( "Connecting")
+        self.log( "Connecting")
         self.TCPSocket.connect(self.host, toString(self.port))
         while self.TCPSocket.isConnected() == false
             sleep(0.1)
         end
-        self.logStream.writeText( "done.\n")
-        self.logStream.writeText( "Connected, Logging in\n")
+        self.log( "done.")
+        self.log( "Connected, Logging in")
         self.logStream.flush()
         self.TCPSocket.setTimeout(0.1)
         self.login()
@@ -206,7 +314,7 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
                 for p in self.messages
                     if p.regex.match( line )
                         message = p.message( line, p.regex, self )
-                        broadcast(message.name(), message)
+                        launch broadcast(message.name(), message)
                         break
                     end
                 end
@@ -249,9 +357,7 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     end
     
     function ban(channel, nick, reason)
-        if not reason
-            reason = ""
-        end
+        reason = reason ? reason : ""
         self.send(@"KICK $channel $nick :$reason")
     end
     
@@ -264,6 +370,13 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         user = user ? user : ""
         banMask = banMask ? banMask : ""
         self.send(@"MODE $channelOrNick $mode $limit $user $banMask")
+    end
+    
+    function log(text)
+        if self.logStream
+            self.logStream.writeText(CurrentTime().toRFC2822() + " " + self.clientName + ": " + text + "\n")
+            self.logStream.flush()
+        end
     end
         
 end
