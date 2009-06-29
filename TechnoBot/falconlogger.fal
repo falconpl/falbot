@@ -1,8 +1,11 @@
 load IrcClient
 
-logger = IrcClient("irc.freenode.net", 6667, "Fal Bot", "Falcon Bot", "Falbot")
+logger = IrcClient("irc.freenode.net", 6667, "FalLogger", "Falcon Channel logger", "FalLogger")
 subscribe("IrcPrivateMessage", {message =>
-                                    message.client.log(message.nick + ": " + message.said)
+                                    if message.channel == "#falcon"
+                                        time = CurrentTime().toRFC2822()
+                                        message.client.log(@"($time) $message.nick: $message.said")
+                                    end
                                })
 logger.connect()
 logger.join("#falcon")
