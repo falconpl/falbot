@@ -284,15 +284,15 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     end
     
     function read()
-        
-        self.buff = self.TCPSocket.recv( 4096)
+        self.buff= "" 
+        self.TCPSocket.recv( self.buff, 4096)
         if len(self.buff) == 0
             return false
         else
             self.buff.replace("\n\r", "\n")
             self.buff.replace("\r", "\n")
             for line in self.buff.split("\n")
-                self.lines.push(line.backTrim())
+                self.lines.push(line.trim())
             end
             return true
         end
