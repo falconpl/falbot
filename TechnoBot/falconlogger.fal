@@ -14,7 +14,7 @@ time = CurrentTime()
             while true
                 newTime = CurrentTime()
                 if newTime.day > time.day
-                    logger.GenerateLogFile()
+                    logger.generateLogFile()
                 end
                 time = newTime
                 sleep(60)

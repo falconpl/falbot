@@ -233,7 +233,7 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     nick = nNick
     name = nName
     clientName = nClientName
-    buff = nil
+    buff = ""
     lines = List()
     logStream = logTo
     special = "" * 0x263a
@@ -283,10 +283,9 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         return ((self.TCPSocket.send(msg + "\n\r")) > 0)
     end
     
-    function read()
-        self.buff= "" 
-        self.TCPSocket.recv( self.buff, 4096)
-        if len(self.buff) == 0
+    function read()      
+        
+        if self.TCPSocket.recv( self.buff, 4096) <= 0
             return false
         else
             self.buff.replace("\n\r", "\n")
