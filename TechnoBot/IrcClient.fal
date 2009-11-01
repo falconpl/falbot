@@ -258,7 +258,7 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     end
     
     function generateLogFile()
-        time = CurrentTime().toRFC2822().replace(" ", "_").replace(":", "_").replace("+", "p").replace("-", "m")
+        time = CurrentTime().toString("%y-%m-%d")
         self.logStream = OutputStream(@"Log-$(time)-$(self.clientName).log")
     end
     
@@ -371,9 +371,13 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         self.send(@"MODE $channelOrNick $mode $limit $user $banMask")
     end
     
-    function log(text)
+    function log(text, verboseTimeStamp)
         if self.logStream
-            self.logStream.writeText(CurrentTime().toRFC2822() + " " + self.clientName + ": " + text + "\n")
+            if verboseTimeStamp
+              self.logStream.writeText(CurrentTime().toRFC2822 + " " + self.clientName + ": " + text + "\n")
+            else
+              self.logStream.writeText(text + "\n")
+            end
             self.logStream.flush()
         end
     end
