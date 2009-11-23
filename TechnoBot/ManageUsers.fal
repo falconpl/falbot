@@ -1,0 +1,365 @@
+/*
+ *  Manage users (nicks), capture their code submissions, compile it and display
+ *      results on the channel.
+ *
+ *  See function showhelp() for chat usage
+ *
+ *  Paul Nema
+ */
+
+// Falcon Modules
+load regex
+load compiler
+
+// Application Modules
+load IrcClient
+load CommandLine
+
+export ManageUsers
+
+
+// Online help for display on the channel
+function showHelp()
+    help = "Supported Tags:\n" +
+        "{% code %}\tBegin code capture.  Everything after this tag will be submitted to the compiler\n" +
+        "{% endcode %}\tEnd code capture.  Immediately after this tag all submitted code will be compiled and results displayed on the channel\n" +
+        "{% showcode %}\tDisplay what is in the user/nick's code buffer\n" +
+        "{% rerun %}\tResubmit code to compiler and display results\n" +
+        "{% help %}\tDisplay this\n" +
+        "Note X 4:\n" +
+        "\t1. A tag cannot be split between multiple lines\n" +
+        "\t2. Tags are not case sensitive\n" +
+        "\t3. Tags can have space or no space within the tag. For example: {%\tShowCode\t%} or {%SHOWCODE%}, etc\n" +
+        "\t4. Attempts to touch the file system (I.E. dirRemove, IOStream, etc) will cause termination of the submitted code"
+        
+    return( help )
+end
+
+
+//
+// create a user object for each valid nick on the channel
+//
+
+class User ( user, ircclient )
+    username = user
+    irc_client = ircclient
+    code_buf = strBuffer( 4096 )
+    code = false
+    last_message = nil
+    
+    static regex_code_start = nil
+    static regex_code_middle = nil
+    static regex_code_end = nil
+    static regex_one_line = nil
+    static regex_show_code = nil
+    static regex_reset = nil
+    static regex_rerun = nil
+    static regex_help = nil
+    
+    ic = ICompiler()  // each nick gets a ICompiler - not very scalable
+    ic_std_out = StringStream()
+    ic_std_err = StringStream()
+    
+    init
+        self.ic.stdOut = self.ic_std_out
+        self.ic.stdErr = self.ic_std_err
+        
+        self.regex_code_start = Regex( "\{\%\\s*[cC][oO][dD][eE]\\s*\%\}\\s*(.*)" )
+        self.regex_code_middle = Regex( "SAID (.*)" )
+        self.regex_code_end = Regex( "SAID (.*)\\s*\{\%\\s*[eE][nN][dD][cC][oO][dD][eE]\\s*\%\}(.*)" )
+        self.regex_one_line = Regex( "\{\%\\s*[cC][oO][dD][eE]\\s*\%\}(.*)\{\%\\s*[eE][nN][dD][cC][oO][dD][eE]\\s*\%\}" )
+        self.regex_show_code = Regex( "\{%\\s*[sS][hH][oO][wW][cC][oO][dD][eE]\\s*\%\}" )
+        self.regex_reset = Regex( "\{%\\s*[rR][eE][sS][eE][tT]\\s*\%\}" )
+        self.regex_rerun = Regex( "\{%\\s*[rR][eE][rR][uU][nN]\\s*\%\}" )
+        self.regex_help = Regex( "\{%\\s*[hH][eE][lL][pP]\\s*\%\}" )
+        
+        self.code_buf = "\nload safe\n" // security feature
+    end
+    
+    //
+    // process message from this user
+    //
+    function message ( msg )
+        self.last_message = msg // keep only the most current message
+        
+        // user request to re-init to initial state
+        if self.regex_reset.match( msg.toString() )            
+            self.irc_client.sendToChannel( @ "Code Buffer Erased for $self.username" )
+            
+            self.resetCompiler()
+            self.code_buf = ""
+            
+            return
+        end
+        
+        // user requested to re-run code in the code buffer
+        if self.regex_rerun.match( msg.toString() )
+            self.compile()
+            self.resetCompiler()
+        end
+        
+        // user wants to see his freaking code
+        if self.regex_show_code.match( msg.toString() )
+            self.showCode()
+        end
+        
+        // give user a clue on how to use this bot
+        if self.regex_help.match( msg.toString() )
+            self.displayMultilineText( showHelp() )
+        end
+        
+        if self.code == true  // if true every line is code
+            
+            // check to see if user wants to end code block
+            if self.regex_code_end.match( msg.toString() )
+                
+                // capture any last code
+                self.code_buf += msg.toString()[ self.regex_code_end.captured(1) ] + 
+                    "\n"
+                
+                self.compile()  // compile the code and report results
+                self.resetCompiler()
+            else
+                if self.regex_code_middle.match( msg.toString() )
+                    self.code_buf += msg.toString()[ self.regex_code_middle.captured(1) ] +
+                        "\n"
+                end
+            end
+        else
+            if self.regex_one_line.match( msg.toString() ) // one line of code given
+                > "message: MATCH on one Line"
+                self.code_buf = "\nload safe\n" + msg.toString()[ self.regex_one_line.captured(1) ]
+                self.compile()
+                self.resetCompiler()
+                
+                return
+            end
+            
+            if self.regex_code_start.match( msg.toString() )
+                self.code = true
+                self.code_buf = "\nload safe\n"
+                self.code_buf += msg.toString()[ self.regex_code_start.captured(1) ] + 
+                    "\n"
+            end
+        end
+    end
+
+    //
+    // Run the compiler
+    //
+    function compile()
+        self.irc_client.sendToChannel( @ "Compile Run Output for $self.username" )
+        
+        try
+            return_code = self.ic.compileAll( self.code_buf )
+            output = self.ic_std_out.getString()
+
+            for line in output.split("\n")
+                self.irc_client.sendToChannel( line )
+            end
+            
+            self.resetCompiler()  // re-init everything
+            
+        catch CodeError in compile_error
+            self.displayMultilineText( compile_error.toString() )
+            
+        catch Error in compile_error
+            for err in compile_error.toString().split("\n")
+                self.irc_client.sendToChannel( err )
+            end
+        end
+    end
+    
+    function resetCompiler()
+        self.code = false // set code capture flag to false
+        self.ic = ICompiler() // New compiler
+        
+        // Set up all the streams
+        self.ic_std_out = StringStream()
+        self.ic_std_err = StringStream()
+        self.ic.stdOut = self.ic_std_out
+        self.ic.stdErr = self.ic_std_err
+    end
+    
+    function showCode()
+        self.irc_client.sendToChannel( @ "Code in Buffer for $self.username" )
+        
+        cnt = 0  // don't show channel 'load safe'
+        for code_line in self.code_buf.split("\n")
+            if cnt > 1:  self.irc_client.sendToChannel( code_line )
+            cnt++
+        end
+    end
+    
+    function displayMultilineText( buf )
+        for line in buf.split("\n")
+            self.irc_client.sendToChannel( line )
+        end
+    end
+    
+    function toString()
+        return self.username
+    end
+end
+
+class ManageUsers ( irc_client, CommandLine )
+    irc_client = nil
+    cmd_line = CommandLine
+    list = [ => ] // list of users on the channel
+    
+    //
+    // Regular expressions on nicks to ignore
+    // Nicks to ignore can be increased via the command line
+    //
+    regex_ignore_nick = [  // ignore these users (and or bots)
+        Regex( "^CIA-\\d\\d$" ),
+        Regex( "^freenode-connect$" ),
+        Regex( "^@ChanServ$" )
+    ]
+    
+    init
+        self.irc_client = irc_client
+        
+        // Set up filters from command line option
+        for nick in self.cmd_line.filter
+            arrayAdd( self.regex_ignore_nick, Regex( @"$nick" ) )
+        end
+        
+        // also, filter myself - don't want to talk to ourself!
+        arrayAdd( self.regex_ignore_nick, Regex( @"$self.irc_client.nick" ) )
+        
+        // subscribe to the messages we are interested in
+        subscribe("IrcPrivateMessage", self)
+        subscribe("IrcJoinMessage", self)
+        subscribe("IrcNumericMessage", self)
+        subscribe("IrcPartMessage", self)
+    end
+    
+    function on_IrcPrivateMessage ( msg )
+        user = self.getUser( msg )
+        
+        if not user
+            return
+        end
+        
+        self.addUser( user )
+        
+        // send msg to user
+        if self.ignoreUser( user ):  return
+        
+        self.list[ user ].message( msg )
+        
+        if self.cmd_line.verbose: > "Processed msg - ", msg
+    end
+    
+    function on_IrcJoinMessage ( msg )
+        user = self.getUser( msg )
+        
+        if not user
+            return
+        end
+        
+        self.addUser( user )
+    end
+
+    function on_IrcPartMessage ( msg )
+        on_IrcJoinMessageuser = self.getUser( msg )
+        
+        user = self.getUser( msg )
+        
+        if not user
+            return
+        end
+        
+        // validate the user is in our list first
+        if not dictFind(self.list, user)
+            // Then delete user from the dictionary list
+            dictRemove(self.list, user)
+            
+            if self.cmd_line.verbose: > user, " Left the channel"
+        end
+    end
+    
+    function on_IrcNumericMessage ( msg )
+        if msg.code != 353 // only look for the user list at this point
+            return
+        end
+        
+        junk, names = msg.message.split(":")
+        self.updateList( names.split(" ") )
+    end
+    
+    function getUser( msg ) // Add a layer for now
+        return( msg.nick )
+    end
+    
+    function updateList ( users )
+        // Add new list to current list (self.list)
+        for user in users
+            self.addUser( user )
+        end
+        
+        // drop users not in the most current list
+        found = false
+        user_list = dictKeys( self.list )
+        
+        for user in user_list
+            for current_user in users
+                if user == current_user
+                    found = true
+                    break
+                end
+            end
+            
+            if not found
+                self.removeUser( user )
+                found = false
+            end
+        end
+    end
+    
+    //
+    // Filter messaged on the ignore list
+    //
+    function ignoreUser( user )
+        for re in self.regex_ignore_nick
+            if re.match( user ): return( true )
+        end
+        
+        return( false )
+    end
+    
+    function addUser ( user )
+        if self.ignoreUser( user ): return( nil )
+        
+        // Determine if the suer in in the dict already
+        if not dictFind(self.list, user)
+            // Add user to the dictionary list
+            self.list[ user ] = User( user, self.irc_client )
+            
+            if self.cmd_line.verbose: > "ManageUsers.addUser - ", user
+            
+            return true
+        end
+        
+        return false
+    end
+    
+    function removeUser ( user )
+        return( dictRemove( user ) )
+    end
+    
+    function toString()
+        user_list = nil
+        
+        for key, value in self.list
+            forfirst: user_list = "Users: "
+            
+            user_list += self.list[ key ].toString()
+            
+            formiddle: user_list += ", "
+        end
+        
+        return user_list
+    end
+end

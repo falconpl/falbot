@@ -1,0 +1,155 @@
+/*
+ *  Code to prevent submitted code from doing anything bad
+ *
+ *  Paul Nema
+ */
+
+
+
+load compiler
+load process
+
+import exec, pread, processKill, system, systemCall, dirChange, dirCurrent, dirMake, dirMakeLink, dirRemove, dirReadLink, fileChgroup, fileChmod, fileChown, fileCopy, fileMove, fileRemove, fileType, sleep, Compiler, ICompiler, IOStream, InputStream, OutputStream
+
+
+// Save these functions/classes so we can call them if necessary
+mySleep = sleep
+MyCompiler = Compiler
+MyICompiler = ICompiler
+MyIOStream = IOStream
+MyInputStream = InputStream
+MyOutputStream = OutputStream
+
+// Export these functions for other scripts to use
+export mySleep, MyCompiler, MyICompiler, MyIOStream, MyInputStream, MyOutputStream
+
+// FUNCTIONS
+function execOverride( str )
+    > "Illeagl attempt to exec ", str, " exiting"
+    exit(1)
+end
+function preadOverride( str )
+    > "Illeagl attempt to pread ", str, " exiting"
+    exit(1)
+end
+function processKillOverride( str )
+    > "Illeagl attempt to processKill ", str, " exiting"
+    exit(1)
+end
+function systemOverride( str )
+    > "Illeagl attempt to system ", str, " exiting"
+    exit(1)
+end
+function systemCallOverride( str )
+    > "Illeagl attempt to systemCall ", str, " exiting"
+    exit(1)
+end
+function dirChangeOverride( str )
+    > "Illeagl attempt to remove dirChange to ", str, " exiting"
+    exit(1)
+end
+function dirCurrentOverride( str )
+    > "Illeagl attempt to dirCurrent ", str, " exiting"
+    exit(1)
+end
+function dirMakeOverride( str )
+    > "Illeagl attempt to dirMake ", str, " exiting"
+    exit(1)
+end
+function dirReadLinkOverride( str )
+    > "Illeagl attempt to dirReadLink ", str, " exiting"
+    exit(1)
+end
+function dirRemoveOverride( str )
+    > "Illeagl attempt to dirRemove ", str, " exiting"
+    exit(1)
+end
+function fileChgroupOverride( str )
+    > "Illeagl attempt to fileChgroup ", str, " exiting"
+    exit(1)
+end
+function fileChmodOverride( str )
+    > "Illeagl attempt to fileChmod ", str, " exiting"
+    exit(1)
+end
+function fileChownOverride( str )
+    > "Illeagl attempt to fileChown ", str, " exiting"
+    exit(1)
+end
+function fileCopyOverride( str )
+    > "Illeagl attempt to fileCopy ", str, " exiting"
+    exit(1)
+end
+function fileMoveOverride( str )
+    > "Illeagl attempt to fileMove ", str, " exiting"
+    exit(1)
+end
+function fileRemoveOverride( str )
+    > "Illeagl attempt to fileRemove ", str, " exiting"
+    exit(1)
+end
+function fileTypeOverride( str )
+    > "Illeagl attempt to fileType ", str, " exiting"
+    exit(1)
+end
+function sleepOverride( seconds )
+    if seconds > 5
+        mySleep( 5 )
+    end
+    > "Illeagl attempt to sleep greater than 5 seconds.  Will sleep only for 5 seconds"
+end
+
+// CLASSES
+class MyCompiler
+    init
+        > "Illeagl attempt to create a new Compiler() "
+    end
+end
+class MyICompiler
+    init
+        > "Illeagl attempt to create a new ICompiler() "
+    end
+end
+class MyIOStream
+    init
+        > "Illeagl attempt to create a new IOStream() "
+    end
+end
+class MyInputStream
+    init
+        > "Illeagl attempt to create a new InputStream() "
+    end
+end
+class MyOutputStream
+    init
+        > "Illeagl attempt to create a new OutputStream() "
+    end
+end
+
+// use our defined functions and classes
+// FUNCTIONS
+exec = execOverride
+pread = preadOverride
+processKill = processKillOverride
+system = systemOverride
+systemCall = systemCallOverride
+dirChange = dirChangeOverride
+dirCurrent = dirCurrentOverride
+dirMake = dirMakeOverride
+dirReadLink = dirReadLinkOverride
+dirRemove = dirRemoveOverride
+fileChgroup = fileChgroupOverride
+fileChmod = fileChmodOverride
+fileChown = fileChownOverride
+fileCopy = fileCopyOverride
+fileMove = fileMoveOverride
+fileRemove = fileRemoveOverride
+fileType = fileTypeOverride
+sleep = sleepOverride
+
+// CLASSES
+Compiler = MyCompiler
+ICompiler = MyICompiler
+IOStream = MyIOStream
+InputStream = MyInputStream
+OutputStream = MyOutputStream

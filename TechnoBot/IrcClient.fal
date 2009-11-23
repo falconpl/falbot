@@ -1,6 +1,12 @@
+// Falcon Modules
 load socket
 load regex
 
+// FalconLogger Modules
+load CommandLine
+
+
+// Export
 export IrcClient
 
 /* Parts of this file are from the ircclient.fal from the simple IRC bot 
@@ -96,16 +102,16 @@ end
  */
  
 class IrcJoinMessage( raw, re, client ) from IrcMessage( raw, re, client )
-    user    = nil
+    nick    = nil
     channel = nil
     
     init
-        self.user    = self.rawMessage[ self.re.captured( 1 ) ]
+        self.nick    = self.rawMessage[ self.re.captured( 1 ) ]
         self.channel = self.rawMessage[ self.re.captured( 2 ) ]
     end
     
     function toString()
-        return @"<Join Message> $self.user JOINED $self.channel"
+        return @"<Join Message> $self.nick JOINED $self.channel"
     end
 end
 
@@ -159,18 +165,13 @@ class IrcNumericMessage(raw, re, client) from IrcMessage(raw, re, client)
     host = nil
     code = nil
     nick = nil
-    channel = nil
     message = nil
     
     init
-        host =      self.rawMessage[ self.re.captured( 1 ) ]
-        code = int( self.rawMessage[ self.re.captured( 2 ) ] )
-        nick =      self.rawMessage[ self.re.captured( 3 ) ]
-        channel =   self.rawMessage[ self.re.captured( 4 ) ]
-        message =   self.rawMessage[ self.re.captured( 5 ) ]
-        if not channel
-            channel = ""
-        end
+        self.host =      self.rawMessage[ self.re.captured( 1 ) ]
+        self.code = int( self.rawMessage[ self.re.captured( 2 ) ] )
+        self.nick =      self.rawMessage[ self.re.captured( 3 ) ]
+        self.message =   self.rawMessage[ self.re.captured( 4 ) ]
     end
     
     function match(pattern)
@@ -184,13 +185,6 @@ class IrcNumericMessage(raw, re, client) from IrcMessage(raw, re, client)
         if pattern.nick
             match = (self.nick == pattern.nick) and match
         end
-        if pattern.channel
-            if self.channel
-                match = (self.channel == pattern.channel) and match
-            else
-                match = false and match
-            end
-        end
         if pattern.message
             match = (self.message == pattern.message) and match
         end
@@ -198,11 +192,7 @@ class IrcNumericMessage(raw, re, client) from IrcMessage(raw, re, client)
     end
     
     function toString()
-        if self.channel
-            return @ "<Numeric Message> $self.host SENT $self.code TO $self.nick SENT $self.message"
-        else
-            return @ "<Numeric Message> $self.host SENT $self.code TO $self.nick IN $self.channel SENT $self.message"
-        end
+        return @ "<Numeric Message> $self.host SENT $self.code TO $self.nick SENT $self.message"
     end
 end
 
@@ -227,55 +217,72 @@ class IrcModeMessage(raw, re, client) from IrcMessage(raw, re, client)
         parameter = self.rawMessage[ self.re.captured( 6 ) ]
     end
 end
-class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
+
+class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) from TCPSocket
+    channel = nil
     host = nHost
     port = nPort
     nick = nNick
     name = nName
     clientName = nClientName
-    buff = ""
-    lines = List()
+    buff = ""       // buffer
+    lines = List()  // queue
     logStream = logTo
-    special = "" * 0x263a
+    cmd_line = CommandLine  // command line options
     
-    //inspired by the message matching in ircclient.fal
-    messages = Table( .[ "regex"                                                                "message"           ],
-                      .[ Regex( "NOTICE (\\w+) :(.*$)" )                                        IrcNoticeMessage    ],
-                      .[ Regex( "PING :(.*)$" )                                                 IrcPingMessage      ],
-                      .[ Regex( ":(.*)!(.*) JOIN :(.*)$" )                                      IrcJoinMessage      ],
-                      .[ Regex( ":(.*)!(.*) PART (.*) :(.*)$" )                                 IrcPartMessage      ],
-                      .[ Regex( ":(.*)!(.*) PRIVMSG ([^:]*) :(.*)$" )                           IrcPrivateMessage   ],
-                      .[ Regex( ":([^ ]*) ([[:digit:]]{3}) ([^: ]*) (#[^: \a,])? :(.*)$" )      IrcNumericMessage   ],
-                      .[ Regex( ":(.*)!(.*) MODE ([^ ]*) ([+-])([A-Za-z]+) ([^ ]*)?$" )        IrcModeMessage      ], 
-                      .[ Regex( ":(.*)$" )                                                      IrcMessage          ]
-              )
-    //end
+    // Use a Table to hold message patterns and associated object
+    messages = Table( 
+        .[ "regex"                                                          "message"        ],
+        .[ Regex( ":(.*)!(.*) PRIVMSG ([^:]*) :(.*)$" )                     IrcPrivateMessage],
+        .[ Regex( ":(\\S+) (\\d{3}) (\\S+) \\d*\\s?[:|=|#](.*)$" )          IrcNumericMessage],
+        .[ Regex( ":(.*)!(.*) JOIN :(.*)$" )                                IrcJoinMessage   ],
+        .[ Regex( ":(.*)!(.*) PART (.*) :(.*)$" )                           IrcPartMessage   ],
+        .[ Regex( ":(.*)!(.*) MODE ([^ ]*) ([+-])([A-Za-z]+) ([^ ]*)?$" )   IrcModeMessage   ],
+        .[ Regex( "NOTICE (\\w+) :(.*$)" )                                  IrcNoticeMessage ],
+        .[ Regex( "PING :(.*)$" )                                           IrcPingMessage   ],
+        .[ Regex( ":(.*)$" )                                                IrcMessage       ]
+    )
     
     init
-    if self.logStream == nil
-        self.generateLogFile()
-    end
+        if self.logStream == nil and self.cmd_line.log
+	    // if a stream is not given, create our own
+            self.generateLogFile()
+        end
+        
+        subscribe("IrcPingMessage", self.pong)
     end
     
     function generateLogFile()
         time = CurrentTime().toString("%y-%m-%d")
-        self.logStream = OutputStream(@"Log-$(time)-$(self.clientName).log")
+        self.logStream = IOStream(@"Log-$(time)-$(self.clientName).log")
+        self.logStream.seekEnd( 0 ) // append if the file exists
+        
+        if self.cmd_line.verbose: > @ "Created Log File Log-$(time)-$(self.clientName).log"
     end
     
     function connect()
-        self.TCPSocket.setTimeout(0)
-        self.log( "Connecting")
-        self.TCPSocket.connect(self.host, toString(self.port))
-        while self.TCPSocket.isConnected() == false
-            sleep(0.1)
+        if self.cmd_line.verbose
+            > "Connecting to ", self.cmd_line.host
+            > "On Port ", self.cmd_line.port
         end
+        
+        self.TCPSocket.setTimeout( 0 )
+        self.log( "Connecting")
+        self.TCPSocket.connect( self.host, toString(self.port) )
+        
+        while self.TCPSocket.isConnected() == false
+            sleep( 0.1 ) // keep spinning until we connect
+        end
+        
         self.log( "done.")
         self.log( "Connected, Logging in")
-        self.logStream.flush()
-        self.TCPSocket.setTimeout(0.1)
+        if self.cmd_line.log: self.logStream.flush()
+        self.TCPSocket.setTimeout( 0.1 )
         self.login()
         launch self.connectionHandler()
-        subscribe("IrcPingMessage", self.pong)
+        
+        if self.cmd_line.verbose: > "Connection successful"
+        
         return true
     end
     
@@ -283,8 +290,7 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         return ((self.TCPSocket.send(msg + "\n\r")) > 0)
     end
     
-    function read()      
-        
+    function read()
         if self.TCPSocket.recv( self.buff, 4096) <= 0
             return false
         else
@@ -293,6 +299,7 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
             for line in self.buff.split("\n")
                 self.lines.push(line.trim())
             end
+            
             return true
         end
     end
@@ -300,31 +307,40 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     function readline()
         if not self.lines.empty()
             return self.lines.popFront()
-        else
-            self.read()
-            return false
         end
+        
+        self.read()
+        return false
     end
     
     function connectionHandler()
+	// figure message type and dispatch it
         while true
             line = self.readline()
             if line
                 for p in self.messages
                     if p.regex.match( line )
                         message = p.message( line, p.regex, self )
-                        launch broadcast(message.name(), message)
+                        
+                        launch broadcast( message.name(), message )
+                        
                         break
                     end
                 end
             end
-            sleep(0.01)
+            
+            sleep( 0.1 )
         end
     end
     
-    // Methods for various IRC commands.
+    // send message to specific user
     function sendTo( name, msg)
         return ((self.send(@"PRIVMSG $name :$msg")) > 0)
+    end
+    
+    // send message to current channel
+    function sendToChannel( msg )
+        return ((self.send(@"PRIVMSG $self.channel :$msg")) > 0)
     end
     
     function login()
@@ -333,7 +349,6 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
     end
     
     function pong(message)
-        > "Ponging: " + message.pingFrom[ 0 ]
         message.client.send( "PONG " + message.pingFrom[ 0 ] )
     end
     
@@ -341,10 +356,16 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         if not reason
             reason = ""
         end
+        
         self.send( "QUIT " + reason)
+        
+        if self.cmd_line.verbose: > "Application Quiting"
     end
     
-    function join(channel)
+    function join( channel )
+        if self.cmd_line.verbose: > "Joining channel ", self.cmd_line.host
+        
+        self.channel = channel
         self.send(@"JOIN $channel")
     end
     
@@ -352,6 +373,7 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         if not reason
             reason = ""
         end
+        
         self.send(@"KICK $channel $nick :$reason")
     end
     
@@ -371,15 +393,16 @@ class IrcClient(nHost, nPort, nNick, nName, nClientName, logTo) from TCPSocket
         self.send(@"MODE $channelOrNick $mode $limit $user $banMask")
     end
     
-    function log(text, verboseTimeStamp)
-        if self.logStream
+    function log(text, verboseTimeStamp) // write to the log file
+        if self.logStream and self.cmd_line.log
             if verboseTimeStamp
-              self.logStream.writeText(CurrentTime().toRFC2822 + " " + self.clientName + ": " + text + "\n")
+                self.logStream.writeText(CurrentTime().toRFC2822 + " " + self.clientName + ": " + text + "\n")
             else
-              self.logStream.writeText(text + "\n")
+                self.logStream.writeText(text + "\n")
             end
-            self.logStream.flush()
+            
+        self.logStream.flush()
+        
         end
     end
-        
 end

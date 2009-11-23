@@ -1,0 +1,113 @@
+/*
+ *  Command Line options and directives
+ *
+ *  Paul Nema
+ */
+
+export CommandLine
+
+object CommandLine from CmdlineParser
+
+    _host = "irc.freenode.net"
+    _channel = "#falcon"
+    _port = 6667
+    _log = true
+    _eval = false
+    _verbose = false
+    _filter = []
+    
+    function onOption( option )
+        switch option
+        case "h", "host", "p", "port", "c", "channel", "f", "filter"
+            self.expectValue()
+        case "?", "help"
+            > self.usage()
+            exit(0)
+        case "l", "log"
+            self._log = true
+        case "e", "eval"
+            self._eval = true
+        case "v", "verbose"
+            self._verbose = true
+        default
+            > self.usage()
+            exit(1)
+        end
+    end
+
+    function onValue( option, value)
+        switch option
+        case "h", "host"
+            self._host = value
+        case "p", "port"
+            self._port = value
+        case "c", "channel"
+            self._channel = value
+        case "f", "filter"
+            arrayAdd(self._filter, value)
+        end
+    end
+    
+    function onSwitchOff( sw )
+        switch sw
+        case "l", "log"
+            self._log = false
+        case "e", "eval"
+            self._eval = false
+        default
+            self.unrecongnized( sw )
+        end
+    end
+
+    function usage()
+        return( "falconlogger.fal [-h --host host] [-c --channel channel] [-p port]\n" +
+            "\t[-f -filter nick] [-l|-l-] [-e|-e-] [-v]\n" +
+            "\thost default = " + self._host +
+            "\n\tchannel default = " + self._channel +
+            "\n\tport default = " + self._port +
+            "\n\tfilter: each '-f nick' combo will be filtered" +
+            "\n\t-l (log) default = " + self._log +
+            "\n\t\tNOTE: -l- sets log to false" +
+            "\n\t-v (Verbose) default = " + self._verbose +
+            "\n\t-e (eval) default = " + self._eval +
+            "\n\t\tNOTE: -e- sets eval to false" +
+            "\n\tNOTE: at least one flag (log | eval) must be set to true" )
+    end
+    
+    function parse()
+        // call base class parse
+        self.CmdlineParser.parse()
+        
+        if not self._log and not self._eval
+            > "Both log and eval flags are false\n\n", self.usage()
+        end
+    end
+    
+    function __get_channel()
+        return self._channel
+    end
+        
+    function __get_port()
+        return self._port
+    end
+    
+    function __get_host()
+        return self._host
+    end
+    
+    function __get_log()
+        return self._log
+    end
+    
+    function __get_eval()
+        return self._eval
+    end
+    
+    function __get_verbose()
+        return self._verbose
+    end
+    
+    function __get_filter()
+        return self._filter
+    end
+end
