@@ -9,16 +9,16 @@
 load compiler
 load process
 
-import exec, pread, processKill, system, systemCall, dirChange, dirCurrent, dirMake, dirMakeLink, dirRemove, dirReadLink, fileChgroup, fileChmod, fileChown, fileCopy, fileMove, fileRemove, fileType, sleep, Compiler, ICompiler, IOStream, InputStream, OutputStream
+import exec, getenv, pread, processKill, setenv, system, systemCall, dirChange, dirCurrent, dirMake, dirMakeLink, dirRemove, dirReadLink, fileChgroup, fileChmod, fileChown, fileCopy, fileMove, fileRemove, fileType, sleep, Compiler, ICompiler, IOStream, InputStream, OutputStream
 
 
 // Save these functions/classes so we can call them if necessary
-mySleep = sleep
-MyCompiler = Compiler
-MyICompiler = ICompiler
-MyIOStream = IOStream
-MyInputStream = InputStream
-MyOutputStream = OutputStream
+// mySleep = sleep
+// MyCompiler = Compiler
+// MyICompiler = ICompiler
+// MyIOStream = IOStream
+// MyInputStream = InputStream
+// MyOutputStream = OutputStream
 
 // Export these functions for other scripts to use
 export mySleep, MyCompiler, MyICompiler, MyIOStream, MyInputStream, MyOutputStream
@@ -28,12 +28,20 @@ function execOverride( str )
     > "Illeagl attempt to exec ", str, " exiting"
     exit(1)
 end
+function getenvOverride( str )
+    > "Illeagl attempt to getenv ", str, " exiting"
+    exit(1)
+end
 function preadOverride( str )
     > "Illeagl attempt to pread ", str, " exiting"
     exit(1)
 end
 function processKillOverride( str )
     > "Illeagl attempt to processKill ", str, " exiting"
+    exit(1)
+end
+function setenvOverride( str )
+    > "Illeagl attempt to setenv ", str, " exiting"
     exit(1)
 end
 function systemOverride( str )
@@ -129,8 +137,10 @@ end
 // use our defined functions and classes
 // FUNCTIONS
 exec = execOverride
+getenv = getenvOverride
 pread = preadOverride
 processKill = processKillOverride
+setenv = setenvOverride
 system = systemOverride
 systemCall = systemCallOverride
 dirChange = dirChangeOverride

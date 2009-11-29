@@ -1,3 +1,5 @@
+#!/usr/bin/env falcon
+
 /*
  *  falconlogger.fal
  *
@@ -12,12 +14,8 @@
  *      2. Updated by: Paul Davey, (TechnoMancer|OmniMancer)
  *      3. Updated by: Paul Nema, (pnema)
  *
- *  New functionality added by Paul Nema - 22-NOV-2009:
- *  1. Command Line directives - see CommandLine.usage()
- *  2. Capability to capture submitted code on the designated channel, 
- *      compile code and send the output back to the channel
- *  3. Create only one log file per day.  Multiple starts will append logging
- *      to the existing chat log.
+ *  New functionality added by Paul Nema - 29-NOV-2009:
+ *  1. Display help (links to falconpl.org) for chat users
  *
  *  Paul Nema
  */
@@ -29,24 +27,17 @@ load regex
 load IrcClient
 load ManageUsers
 load CommandLine
+load DocHelp
 
 
 CommandLine.parse()  // get the command line options
 
 logger = IrcClient("irc.freenode.net", 6667,
-    "FalconLog", "Falcon Logger and Script Eval", "FalconLog", nil, CommandLine)
+    "FalconBot", "Falcon Logger/Eval/Info Bot", "FalconBot", nil, CommandLine)
 
 if CommandLine.eval:  user_manager = ManageUsers( logger, CommandLine )
 
-subscribe("IrcPrivateMessage",
-        { message =>
-            if message.channel == CommandLine.channel
-                time = CurrentTime().toString("%R")
-                message.client.log(@"($time) $message.nick: $message.said")
-            end
-        }
-    )
-
+docHelp = DocHelp( logger, CommandLine )
 
 logger.connect() // connect to the irc server
 logger.join( CommandLine.channel ) // join a channel
@@ -58,12 +49,14 @@ time = CurrentTime()
 while true
     if CommandLine.log
         newTime = CurrentTime()
+        
         if newTime.day > time.day
             if CommandLine.verbose: > "Creating a new log file"
             logger.generateLogFile()
-            end
+        end
+        
         time = newTime
     end
 
-    sleep(5)
+    sleep(10)
 end

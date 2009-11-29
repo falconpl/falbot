@@ -332,8 +332,8 @@ class ManageUsers ( irc_client, CommandLine )
     function addUser ( user )
         if self.ignoreUser( user ): return( nil )
         
-        // Determine if the suer in in the dict already
-        if not dictFind(self.list, user)
+        // Determine if the user in in the dict already
+        if not dictFind( self.list, user )
             // Add user to the dictionary list
             self.list[ user ] = User( user, self.irc_client )
             

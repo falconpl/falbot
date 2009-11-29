@@ -15,20 +15,28 @@ object CommandLine from CmdlineParser
     _eval = false
     _verbose = false
     _filter = []
+    _web_path = '/home/pnema/dev/falcon/falcon-website/live/data'
+    _core_path = '/web/falcon.com/html/core'
+    _module_path = '/web/falcon.com/html/feathers'
     
     function onOption( option )
         switch option
-        case "h", "host", "p", "port", "c", "channel", "f", "filter"
+        case "h", "host", "p", "port", "c", "channel", "f", "filter", "web", "core", "module"
             self.expectValue()
+            
         case "?", "help"
             > self.usage()
             exit(0)
+            
         case "l", "log"
             self._log = true
+            
         case "e", "eval"
             self._eval = true
+            
         case "v", "verbose"
             self._verbose = true
+            
         default
             > self.usage()
             exit(1)
@@ -39,12 +47,27 @@ object CommandLine from CmdlineParser
         switch option
         case "h", "host"
             self._host = value
+            
         case "p", "port"
             self._port = value
+            
         case "c", "channel"
             self._channel = value
+            
         case "f", "filter"
             arrayAdd(self._filter, value)
+            
+        case "web"
+            self._web_path = value
+            
+        case "core"
+            self._core_path = value
+            
+        case "module"
+            self._module_path = value
+            
+        default
+            self.unrecongnized( option )
         end
     end
     
@@ -52,8 +75,10 @@ object CommandLine from CmdlineParser
         switch sw
         case "l", "log"
             self._log = false
+            
         case "e", "eval"
             self._eval = false
+            
         default
             self.unrecongnized( sw )
         end
@@ -61,17 +86,23 @@ object CommandLine from CmdlineParser
 
     function usage()
         return( "falconlogger.fal [-h --host host] [-c --channel channel] [-p port]\n" +
-            "\t[-f -filter nick] [-l|-l-] [-e|-e-] [-v]\n" +
-            "\thost default = " + self._host +
+            "\t[-f -filter nick] [-l|-l-] [-e|-e-|--eval] [-v] [-?|--help]\n" +
+            "\t[--path /path/to/website/ftd's ] [--core /path/to/core/html's ]" +
+            "\t[--module /path/to/module/html's ]" +
+            "\n\thost default = " + self._host +
             "\n\tchannel default = " + self._channel +
             "\n\tport default = " + self._port +
+            "\n\tpath: default = " + self.web_path +
+            "\n\tcore: default = " + self.core_path +
+            "\n\tmodule: default = " + self.module_path +
             "\n\tfilter: each '-f nick' combo will be filtered" +
+            "\n\t-? usage " +
             "\n\t-l (log) default = " + self._log +
             "\n\t\tNOTE: -l- sets log to false" +
             "\n\t-v (Verbose) default = " + self._verbose +
-            "\n\t-e (eval) default = " + self._eval +
+            "\n\t-e (compiler) default = " + self._eval +
             "\n\t\tNOTE: -e- sets eval to false" +
-            "\n\tNOTE: at least one flag (log | eval) must be set to true" )
+            "\n\t\tNOTE: at least one flag (log | eval) must be set to true" )
     end
     
     function parse()
@@ -103,11 +134,23 @@ object CommandLine from CmdlineParser
         return self._eval
     end
     
+    function __get_filter()
+        return self._filter
+    end
+        
     function __get_verbose()
         return self._verbose
     end
     
-    function __get_filter()
-        return self._filter
+    function __get_web_path()
+        return self._web_path
+    end
+    
+    function __get_core_path()
+        return self._core_path
+    end
+    
+    function __get_module_path()
+        return self._module_path
     end
 end

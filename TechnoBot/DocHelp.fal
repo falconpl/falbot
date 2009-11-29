@@ -1,0 +1,287 @@
+/*
+ *  Look for help requests then provide a URL to the requested documentation on falconpl.org
+ *
+ *  See function showDocHelp() for chat usage
+ *
+ *  Paul Nemas
+ */
+
+// Falcon Modules
+load regex
+
+// Application Modules
+load IrcClient
+load CommandLine
+
+
+
+// Online help for display on the channel
+function helpUsage()
+    help = "Help on !help:\n" +
+        "Chat Usage: !help help | !help category subject\n" +
+        "The '!help' must be the first characters on the line\n" +
+        "Example: to get the url for all core functions use: '!help core functions'\n" +
+        "\t'functions' corresponds to the functions.html page under the core tree on the web site\n" +
+        "To see all available subjects under a category enter: '!help help category'\n" +
+        "All !help help [ category ] output goes directly to the requester\n" +
+        "Available categories are:\n" +
+        "\tpage - falcon.com web pages\n" +
+        "\tcore - core related web pages\n" +
+        "\tmodule - feather module related web pages\n"
+        
+    return( help )
+end
+
+
+object regex_help_help from Regex( "![hH][eE][lL][pP]\\s+[hH][eE][lL][pP]" ) 
+    function compare( data )
+        if self.match( data )
+            return 0 // equal
+        end
+        return nil      // asks the VM to use standard ordering criterion
+    end
+end
+
+
+object regex_help_request from Regex( "![hH][eE][lL][pP]\\s+(\\S+)\\s+(\\S+)" )
+   function compare( data )
+      if self.match( data )
+          return 0 // equal
+      end
+      return nil      // asks the VM to use standard ordering criterion
+   end
+end
+
+object regex_help_nick from Regex( "![hH][eE][lL][pP]-(\\S+)\\s+(\\S+)\\s+(\\S+)" )
+   function compare( data )
+      if self.match( data )
+          return 0 // equal
+      end
+      return nil      // asks the VM to use standard ordering criterion
+   end
+end
+
+//
+// class DocHelp: scan for help requests
+//
+
+class DocHelp( ircclient, CommandLine )
+    
+    category = [ => ] // dictionary holding subject dictionaries
+    website_url = 'http://www.falconpl.org/index.ftd?page_id='
+    core_url = 'http://falconpl.org/project_docs/core/'
+    module_url = 'http://falconpl.org/project_docs/feathers/'
+    cmd_line = CommandLine
+    irc_client = ircclient
+    
+    static regex_help = nil // pattern for !help
+    
+    init
+        self.regex_help = Regex( "^![hH][eE][lL][pP]" )
+        
+        if self.cmd_line.verbose:  > "DocHelp loading page data"
+        self.loadPages( "page", self.website_url, self.cmd_line.web_path, '*.ftd' )
+        
+        if self.cmd_line.verbose:  > "DocHelp loading core data"
+        self.loadPages( "core", self.core_url, self.cmd_line.core_path, '*.html' )
+        
+        if self.cmd_line.verbose:  > "DocHelp loading module data"
+        self.loadPages( "module", self.module_url, self.cmd_line.module_path, '*.html' )
+        
+        // subscribe to the messages we are interested in
+        subscribe("IrcPrivateMessage", self)
+        if self.cmd_line.verbose:  > "DocHelp READY"
+    end
+    
+    //
+    // Function to handle message type IrcPrivateMessage we subscribed to
+    //
+    function on_IrcPrivateMessage ( msg )
+        if self.cmd_line.verbose:  > "DocHelp.on_IrcPrivateMessage msg = ", msg
+        
+        // screen for the !help tag
+        if not self.regex_help.match( msg.said ): return
+        
+        sub = ""
+        cat = ""
+        nick = ""
+        rtn = ""
+        message = msg.said
+        
+        switch message
+            case regex_help_request
+                cat = message[ regex_help_request.captured( 1 ) ]
+                sub = message[ regex_help_request.captured( 2 ) ]
+            case regex_help_nick
+                nick = message[ regex_help_nick.captured( 1 ) ]
+                cat = message[ regex_help_nick.captured( 2 ) ]
+                sub = message[ regex_help_nick.captured( 3 ) ]
+            case regex_help_help
+                self.displayMultilineText( msg.nick, helpUsage() )
+                return
+            default
+                rtn = self.irc_client.sendToChannel( @ "$msg.nick - unknown help request" )
+                return
+        end
+        
+        if not self.validRequest( cat, sub )
+            rtn = self.irc_client.sendToChannel( @ "$msg.nick - unknown: help $cat $sub" )
+            return
+        end
+        
+        if cat == 'help'
+            self.sendMsg( msg.nick, @"Available subjects under help category: $cat" )
+            self.sendMsg( msg.nick, self.category[ 'help' ][ sub ] )
+            
+            return
+        end
+        
+        if nick == ""
+            rtn = self.irc_client.sendToChannel( @ "$msg.nick: help request = " + self.category[ cat ][ sub ] )
+            return
+        end
+        
+        rtn = self.irc_client.sendToChannel( @ "$nick - please see: " + self.category[ cat ][ sub ] )
+    end
+    
+    
+    //
+    // Send data ensure it does not exceed the irc message length
+    // use 300 as other data needs to be sent in the 512 char limit: see RFC 1459
+    //
+    function sendMsg( nick, msg )
+        len = 300
+        start = 0
+        upTo = len
+        msgLen = msg.len()
+        loopCnt = int( msgLen / len )
+        
+        if msgLen > len
+            for i = 1 to loopCnt
+                num = msg.find( '-', upTo )
+                
+                rtn = self.irc_client.sendToNick( nick, msg[ start:num ] )
+                
+                start = num + 2
+                upTo = start + len
+            end
+            
+            // send remainder
+            remainder = msgLen - ( len * loopCnt )
+            if remainder > 0
+                rtn = self.irc_client.sendToNick( nick, msg[ start:msgLen ] )
+            end
+            
+            return
+        end
+        
+        rtn = self.irc_client.sendToNick( nick, msg )
+    end
+    
+    
+    //
+    // Valdiate help request
+    //
+    function validRequest( cat, sub )
+        if not dictFind( self.category, cat ): return false
+        
+        if not dictFind( self.category[ cat ], sub ): return false
+        
+        return true
+    end
+    
+    
+    //
+    // load references to core or module specific pages on the web site
+    //
+    function loadPages( cat, url, path, glob )
+        globs = [ '*.html' ]  // file pattern match - only one at the moment
+        subject = [ => ]
+        help = [ => ]
+        subjects = []
+        file = nil
+        
+        try
+            dir = Directory( path )
+            
+            cnt = 1
+            
+            while( entry = dir.read() )
+                if entry == "." or entry == "..":  continue
+                
+                if strWildcardMatch( entry, glob, true )
+                    if cat == 'page'
+                        sub = entry.replace( ".ftd", "" )
+                        
+                        subject[ sub ] = self.website_url + sub
+                        
+                        subjects.add( sub )
+                    else
+                        file = entry.replace( ".html", "" )  // strip off the .html
+                        
+                        // Determine if this a board category page or a subject page
+                        // Use the general rule if the name contains a '_' its a subject
+                        if file.find( '_' ) != -1 // entry has a '_'
+                            
+                            junk, name = file.split( '_', 2 ) // strip up to the first set of '_'
+                            
+                            // trim '_' as some names have double '_'
+                            subject[ name.ftrim( '_' ) ] = url + entry
+                            
+                            subjects.add( name.ftrim( '_' ) )
+                        else
+                            // Broad Category
+                            subject[ file ] = url + entry
+                            
+                            subjects.add( name.ftrim( '_' ) )
+                        end
+                    end
+                end
+            end
+            
+            dir.close()
+            
+            self.category[ cat ] = subject
+            
+            self.saveHelp( cat, subjects )
+            
+        catch IoError
+            if dir: dir.close()
+            
+            > @ "ERROR: error while scanning directory $directory"
+            exit( 1 )
+        end
+    end
+    
+    
+    //
+    // create list of subjects under each category
+    //
+    function saveHelp( cat, subjects )
+        list = ""
+        
+        subjects.sort( compare )
+        
+        for i in subjects
+            list += i
+            
+            formiddle: list += " - "
+        end
+        
+        if dictFind( self.category, 'help' )
+            self.category[ 'help' ][ cat ] = list
+        else
+            help = [ => ]
+            help[ cat ] = list
+            self.category[ 'help' ] = help
+        end
+    end
+    
+    function displayMultilineText( nick, buf )
+        for line in buf.split("\n")
+            if line.len() > 1:  self.sendMsg( nick, line )
+        end
+    end
+end
+
+export DocHelp

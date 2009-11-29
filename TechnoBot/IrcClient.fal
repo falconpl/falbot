@@ -250,14 +250,15 @@ class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) f
         end
         
         subscribe("IrcPingMessage", self.pong)
+        subscribe("IrcPrivateMessage", self)
     end
     
     function generateLogFile()
         time = CurrentTime().toString("%y-%m-%d")
-        self.logStream = IOStream(@"Log-$(time)-$(self.clientName).log")
+        self.logStream = IOStream(@"Log-$(self.clientName)-$(time).txt")
         self.logStream.seekEnd( 0 ) // append if the file exists
         
-        if self.cmd_line.verbose: > @ "Created Log File Log-$(time)-$(self.clientName).log"
+        if self.cmd_line.verbose: > @ "Created Log File Log-$(self.clientName)-$(time).txt"
     end
     
     function connect()
@@ -267,18 +268,20 @@ class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) f
         end
         
         self.TCPSocket.setTimeout( 0 )
-        self.log( "Connecting")
+        if self.cmd_line.log: self.log( "Connecting")
+        
         self.TCPSocket.connect( self.host, toString(self.port) )
         
         while self.TCPSocket.isConnected() == false
             sleep( 0.1 ) // keep spinning until we connect
         end
         
-        self.log( "done.")
-        self.log( "Connected, Logging in")
+        if self.cmd_line.log: self.log( "Connected, Logging in")
         if self.cmd_line.log: self.logStream.flush()
+        
         self.TCPSocket.setTimeout( 0.1 )
         self.login()
+        
         launch self.connectionHandler()
         
         if self.cmd_line.verbose: > "Connection successful"
@@ -287,7 +290,7 @@ class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) f
     end
     
     function send(msg)
-        return ((self.TCPSocket.send(msg + "\n\r")) > 0)
+        return self.TCPSocket.send(msg + "\n\r")
     end
     
     function read()
@@ -314,7 +317,7 @@ class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) f
     end
     
     function connectionHandler()
-	// figure message type and dispatch it
+	    // figure message type and dispatch it
         while true
             line = self.readline()
             if line
@@ -334,13 +337,13 @@ class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) f
     end
     
     // send message to specific user
-    function sendTo( name, msg)
-        return ((self.send(@"PRIVMSG $name :$msg")) > 0)
+    function sendToNick( name, msg)
+        return self.send(@"PRIVMSG $name :$msg")
     end
     
     // send message to current channel
     function sendToChannel( msg )
-        return ((self.send(@"PRIVMSG $self.channel :$msg")) > 0)
+        return self.send(@"PRIVMSG $self.channel :$msg")
     end
     
     function login()
@@ -392,6 +395,14 @@ class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) f
         banMask = banMask ? banMask : ""
         self.send(@"MODE $channelOrNick $mode $limit $user $banMask")
     end
+    
+    function on_IrcPrivateMessage ( msg )
+        if msg.channel == self.cmd_line.channel
+            time = CurrentTime().toString("%R")
+            self.log(@"($time) $msg.nick: $msg.said")
+        end
+    end
+    
     
     function log(text, verboseTimeStamp) // write to the log file
         if self.logStream and self.cmd_line.log
