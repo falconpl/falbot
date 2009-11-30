@@ -21,7 +21,7 @@ import exec, getenv, pread, processKill, setenv, system, systemCall, dirChange, 
 // MyOutputStream = OutputStream
 
 // Export these functions for other scripts to use
-export mySleep, MyCompiler, MyICompiler, MyIOStream, MyInputStream, MyOutputStream
+// export mySleep, MyCompiler, MyICompiler, MyIOStream, MyInputStream, MyOutputStream
 
 // FUNCTIONS
 function execOverride( str )
@@ -101,10 +101,8 @@ function fileTypeOverride( str )
     exit(1)
 end
 function sleepOverride( seconds )
-    if seconds > 5
-        mySleep( 5 )
-    end
-    > "Illeagl attempt to sleep greater than 5 seconds.  Will sleep only for 5 seconds"
+    > "Illeagl attempt to sleep, exiting"
+    exit(1)
 end
 
 // CLASSES
@@ -158,8 +156,8 @@ fileType = fileTypeOverride
 sleep = sleepOverride
 
 // CLASSES
-Compiler = MyCompiler
-ICompiler = MyICompiler
-IOStream = MyIOStream
-InputStream = MyInputStream
-OutputStream = MyOutputStream
+//Compiler = MyCompiler
+//ICompiler = MyICompiler
+//IOStream = MyIOStream
+//InputStream = MyInputStream
+//OutputStream = MyOutputStream

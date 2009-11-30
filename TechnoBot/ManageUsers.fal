@@ -233,6 +233,8 @@ class ManageUsers ( irc_client, CommandLine )
         subscribe("IrcJoinMessage", self)
         subscribe("IrcNumericMessage", self)
         subscribe("IrcPartMessage", self)
+        
+        if self.cmd_line.verbose: > "ManagerUser READY"
     end
     
     function on_IrcPrivateMessage ( msg )
