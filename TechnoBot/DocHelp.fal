@@ -18,10 +18,11 @@ load CommandLine
 // Online help for display on the channel
 function helpUsage()
     help = "Help on !help:\n" +
-        "Chat Usage: !help help | !help category subject\n" +
+        "Chat Usage: !help help | !help category subject | !help-nick category subject\n" +
         "The '!help' must be the first characters on the line\n" +
         "Example: to get the url for all core functions use: '!help core functions'\n" +
         "\t'functions' corresponds to the functions.html page under the core tree on the web site\n" +
+        "To address a specific user user !help-nick...\n" +
         "To see all available subjects under a category enter: '!help help category'\n" +
         "All !help help [ category ] output goes directly to the requester\n" +
         "Available categories are:\n" +

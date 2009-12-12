@@ -11,7 +11,8 @@ object CommandLine from CmdlineParser
     _host = "irc.freenode.net"
     _channel = "#falcon"
     _port = 6667
-    _log = true
+    _log = './'
+    _nick = nil
     _eval = false
     _verbose = false
     _filter = []
@@ -21,15 +22,18 @@ object CommandLine from CmdlineParser
     
     function onOption( option )
         switch option
+        case "n", "nick"
+            self.expectValue()
+            
+        case "l", "log"
+            self.expectValue()
+            
         case "h", "host", "p", "port", "c", "channel", "f", "filter", "web", "core", "module"
             self.expectValue()
             
         case "?", "help"
             > self.usage()
             exit(0)
-            
-        case "l", "log"
-            self._log = true
             
         case "e", "eval"
             self._eval = true
@@ -45,6 +49,13 @@ object CommandLine from CmdlineParser
 
     function onValue( option, value)
         switch option
+        case "l", "log"
+            self._log = value
+	    if self._log[ self._log.len() - 1 ] != '/': self._log += '/'
+            
+        case "n", "nick"
+            self._nick = value
+            
         case "h", "host"
             self._host = value
             
@@ -73,9 +84,6 @@ object CommandLine from CmdlineParser
     
     function onSwitchOff( sw )
         switch sw
-        case "l", "log"
-            self._log = false
-            
         case "e", "eval"
             self._eval = false
             
@@ -86,9 +94,10 @@ object CommandLine from CmdlineParser
 
     function usage()
         return( "falconlogger.fal [-h --host host] [-c --channel channel] [-p port]\n" +
-            "\t[-f -filter nick] [-l|-l-] [-e|-e-|--eval] [-v] [-?|--help]\n" +
-            "\t[--path /path/to/website/ftd's ] [--core /path/to/core/html's ]" +
+            "\t[-f -filter nick] [-l --log logFilePath] [-e|--eval] [-v] [-?|--help]\n" +
+            "\t[--web /path/to/website/ftd's ] [--core /path/to/core/html's ]" +
             "\t[--module /path/to/module/html's ]" +
+            "\t[-n|--nick name]" +
             "\n\thost default = " + self._host +
             "\n\tchannel default = " + self._channel +
             "\n\tport default = " + self._port +
@@ -97,11 +106,10 @@ object CommandLine from CmdlineParser
             "\n\tmodule: default = " + self.module_path +
             "\n\tfilter: each '-f nick' combo will be filtered" +
             "\n\t-? usage " +
-            "\n\t-l (log) default = " + self._log +
-            "\n\t\tNOTE: -l- sets log to false" +
             "\n\t-v (Verbose) default = " + self._verbose +
-            "\n\t-e (compiler) default = " + self._eval +
-            "\n\t\tNOTE: -e- sets eval to false" +
+            "\n\t-l default = " + self._log +
+            "\n\t\tNOTE: file name is set at: Log-falbot-CCYY-MM-DD.txt" +
+            "\n\t-e (Compiler) default = " + self._eval +
             "\n\t\tNOTE: at least one flag (log | eval) must be set to true" )
     end
     
@@ -129,9 +137,19 @@ object CommandLine from CmdlineParser
     function __get_log()
         return self._log
     end
+    function __set_log( val )
+        self._log = val
+    end
     
     function __get_eval()
         return self._eval
+    end
+
+    function __get_nick()
+        return self._nick
+    end
+    function __set_nick( val )
+        self._nick = val
     end
     
     function __get_filter()

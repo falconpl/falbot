@@ -218,16 +218,16 @@ class IrcModeMessage(raw, re, client) from IrcMessage(raw, re, client)
     end
 end
 
-class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) from TCPSocket
-    channel = nil
-    host = nHost
-    port = nPort
-    nick = nNick
-    name = nName
-    clientName = nClientName
+class IrcClient( nName, CommandLine ) from TCPSocket
+    channel = CommandLine.channel
+    host = CommandLine.host
+    port = CommandLine.port
+    nick = CommandLine.nick
+    name = @"$(CommandLine.nick) $nName"
+    clientName = CommandLine.nick
     buff = ""       // buffer
     lines = List()  // queue
-    logStream = logTo
+    logStream = nil
     cmd_line = CommandLine  // command line options
     
     // Use a Table to hold message patterns and associated object
@@ -244,21 +244,20 @@ class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) f
     )
     
     init
-        if self.logStream == nil and self.cmd_line.log
-	    // if a stream is not given, create our own
-            self.generateLogFile()
-        end
+        self.generateLogFile()
         
         subscribe("IrcPingMessage", self.pong)
         subscribe("IrcPrivateMessage", self)
     end
     
     function generateLogFile()
-        time = CurrentTime().toString("%y-%m-%d")
-        self.logStream = IOStream(@"Log-$(self.clientName)-$(time).txt")
+        time = CurrentTime().toString("%Y-%m-%d")
+	self.cmd_line.log += @ "Log-$(self.clientName)-$(time).txt"
+
+        self.logStream = IOStream( self.cmd_line.log )
         self.logStream.seekEnd( 0 ) // append if the file exists
         
-        if self.cmd_line.verbose: > @ "Created Log File Log-$(self.clientName)-$(time).txt"
+        if self.cmd_line.verbose: > @ "Created Log File ", self.cmd_line.log
     end
     
     function connect()
@@ -365,11 +364,10 @@ class IrcClient( nHost, nPort, nNick, nName, nClientName, logTo, CommandLine ) f
         if self.cmd_line.verbose: > "Application Quiting"
     end
     
-    function join( channel )
-        if self.cmd_line.verbose: > "Joining channel ", self.cmd_line.host
+    function join( )
+        self.send( @ "JOIN $(self.channel)" )
         
-        self.channel = channel
-        self.send(@"JOIN $channel")
+        if self.cmd_line.verbose: > "Joined channel ", self.channel
     end
     
     function kick(channel, nick, reason)
