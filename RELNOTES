@@ -1,0 +1,18 @@
+                         RELEASE NOTES for falbot
+
+                                  1.0
+
+
+NEW FUNCTIONALITY
+===============
+
+!help capability has been added
+
+Code evaluation (via a compiler) has been added
+
+HISTORY
+===============
+
+Initial version created by Jeremy Cowgar.
+Paul Davey then decided to make falbot more robust.
+Paul Nema extended the code base to add !help and eval (Compiler) functionality

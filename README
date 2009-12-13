@@ -1,0 +1,148 @@
+
+                     Falcon Bot (falbot)
+
+                            V1.0
+
+
+
+OBTIAN
+======================
+
+Currently there is no distribution for falbot.
+
+To obtain falbot pull from the SVN repository.  Use the following svn command:
+svn co svn://falconpl.org/falcon/projects/falbot
+
+FUNCTIONAL SUMMARY
+========================
+
+falbot is an IRC chat bot.  It is meant to sit on a channel, log the traffic,
+and provide two other services:
+    1. Provide links to the falconpl.org website by scanning the channel for the
+       '!help' command.  The primary purpose of this feature is for knowledgable
+       falcon chat user to give help to new falcon users on the chat channel.
+    2. Code compiler.  falbot scans the channel for keywords denoting code
+       submissions for falbot to compile and send output back to the channel
+       
+So falbot has a narrow set of functionality for a narrow purpose.  However it
+can be easily modified for other purposes you may have.  Additionally it is a
+good tool to study how falcon scripting is used.
+
+FALCONBOT MINIMAL OPERATION
+========================
+
+falbot is written in the Falcon script language and as such you will need a copy
+of falcon to run falbot.  Falcon can be obtained at www.falconpl.org
+
+falbot is configured to run on the falconpl.org webserver.  All its defaults
+are set for this environment.  You can change this behavior by either changing
+the code or using the command line options  (recommended option).
+
+Default settings:
+1. irc: irc.freenode.net
+2. channel: #falcon
+3. port: 6667
+4. Logfile directory: Current working directory where the application is
+   launched
+5. nick: FalconBot
+6. filter: nicks to ignore for compiler: Itself, CIA-nn, freenode-connect,
+   ChanServ
+7. !help paths: 
+   A. Web site (*.ftd): '/home/pnema/dev/falcon/falcon-website/live/data'
+   B. Core (*.html): '/web/falcon.com/html/core'
+   C. Module (*.html): '/web/falcon.com/html/feathers'
+8. Compiler is turned off, logging and !help is turned on
+
+To launch falbot you will need to set:
+--web /path/to/ftd
+--core /path/to/core
+--module /path/to/module
+
+I.E.
+falbot --web /path/to/ftd --core /path/to/core --module /path/to/module
+
+
+COMPILER
+=============
+
+When this option is turned on, falbot will scan for key words to denote start
+and stop recording a code block for a specific nick.  Key words are
+{%code%}
+{%codeend%} - Note actual keyword pattern allows for space and caps e.g.
+  {% CodeEND  %} is valid
+everything inbetween these two key words will be feed into a compiler and
+executed.  Results will be send back to the channel
+
+Other key words:
+{%showcode%} display code in the buffer for the specific nick
+
+{%reset%} Clear the code in the buffer for the specific nick
+
+{%help%} Send to the specific nick compiler usage
+
+Security: Script commands that touch the file system or execute processes have
+been turned off.  See safe.fal for all falcon fucntions calls that have been
+overridden.
+
+HELP
+=============
+
+Display a link on the channel to the specific web page on the requested topic.
+
+To utilize:
+
+!help keyword must start on the first character of the message. Help options:
+
+!help help - send usage to the nick requesing help on !help
+
+Currently falbot support three domains for help:
+1. The falconpl.org website.  These comprise the *.ftd files
+2. Core: These comprise the *.html files created by faldoc
+3. Module: These compirse the *.html files created by faldoc
+Assumption made by falbot is each of the above categories are in flat
+directories.
+
+To access help from these categories:
+!help help category (e.g. !help help web, !help help core and !help help module)
+The above will send all the subjects to the specific nick.
+
+To request a link to a subject type !help core subject.  E.g. !help core String
+or !help module Compiler or !help web about.  Upon this request falbot will
+address the requesting nick.  To have falbot address a different nick use:
+!help-nick category subject
+
+COMMAND LINE OPTIONS
+=============
+
+-? | --help
+Print usage
+
+-v
+verbose: Send progress and message traffic to std out
+Default: false
+
+-e | --eval
+Turn on compiler
+Default: Off
+
+-f | --filter
+Filter (ignore traffic from) nick for -e|--eval mode
+For each -f|--filter command line option give, that nick will be filtered
+
+-h | --host hostDoamin
+Default: 'irc.freenode.net'
+
+-l | --log logFileName
+Use a different log file name.  Default log file name is:
+Log-FalconBot-CCYY-MM-DD.txt
+Note: if you can the nick via -n 'FalconBot' will change to the new nick
+Note: A new log file will be create at the start of a new day.
+
+-n | --nick
+falbot's nick name
+Default: FalconBot
+
+-p |--port
+Default: 6667
+
+
