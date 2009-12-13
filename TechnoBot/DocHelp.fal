@@ -1,11 +1,20 @@
 /*
- *  Look for help requests then provide a URL to the requested documentation on falconpl.org
- *
- *  See function showDocHelp() for chat usage
- *
- *  Paul Nemas
- */
+   DocHelp - Falcon IRC Bot !help functionality
+   FILE: DocHelp.fal
 
+   Look for help requests on the channel and provide a link to the requested
+   documentation on falconpl.org
+   -------------------------------------------------------------------
+   Author: Paul Nema
+   Begin: 13-DEC-2009
+
+   -------------------------------------------------------------------
+   (C) Copyright 2009: the falbot developers (see list in AUTHORS file)
+
+   See LICENSE file for licensing details.
+*/
+ 
+ 
 // Falcon Modules
 load regex
 

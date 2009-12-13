@@ -1,12 +1,19 @@
 /*
- *  Manage users (nicks), capture their code submissions, compile it and display
- *      results on the channel.
- *
- *  See function showhelp() for chat usage
- *
- *  Paul Nema
- */
+   ManageUsers - Falcon IRC Bot Cde Evaluation functionality
+   FILE: ManageUsers.fal
 
+   Look for key word code tags on the channel, capture the code, compile it and
+   send the output back to the channel
+   -------------------------------------------------------------------
+   Author: Paul Nema
+   Begin: 13-DEC-2009
+
+   -------------------------------------------------------------------
+   (C) Copyright 2009: the falbot developers (see list in AUTHORS file)
+
+   See LICENSE file for licensing details.
+*/
+ 
 // Falcon Modules
 load regex
 load compiler

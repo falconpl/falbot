@@ -1,8 +1,16 @@
 /*
- *  Command Line options and directives
- *
- *  Paul Nema
- */
+   CommandLine - Falcon IRC Bot command line otpions
+   FILE: CommandLine.fal
+
+   -------------------------------------------------------------------
+   Author: Paul Nema
+   Begin: 13-DEC-2009
+
+   -------------------------------------------------------------------
+   (C) Copyright 2009: the falbot developers (see list in AUTHORS file)
+
+   See LICENSE file for licensing details.
+*/
 
 export CommandLine
 
@@ -12,7 +20,7 @@ object CommandLine from CmdlineParser
     _channel = "#falcon"
     _port = 6667
     _log = './'
-    _nick = nil
+    _nick = 'FalconBot'
     _eval = false
     _verbose = false
     _filter = []
@@ -100,6 +108,7 @@ object CommandLine from CmdlineParser
             "\t[-n|--nick name]" +
             "\n\thost default = " + self._host +
             "\n\tchannel default = " + self._channel +
+            "\n\tnick default = " + self._nick +
             "\n\tport default = " + self._port +
             "\n\tpath: default = " + self.web_path +
             "\n\tcore: default = " + self.core_path +
@@ -108,9 +117,8 @@ object CommandLine from CmdlineParser
             "\n\t-? usage " +
             "\n\t-v (Verbose) default = " + self._verbose +
             "\n\t-l default = " + self._log +
-            "\n\t\tNOTE: file name is set at: Log-falbot-CCYY-MM-DD.txt" +
-            "\n\t-e (Compiler) default = " + self._eval +
-            "\n\t\tNOTE: at least one flag (log | eval) must be set to true" )
+            "\n\t\tNOTE: file name is set at: Log-FalconBot-CCYY-MM-DD.txt" +
+            "\n\t-e (Compiler) default = " + self._eval )
     end
     
     function parse()
