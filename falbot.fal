@@ -1,26 +1,56 @@
-load ircclient
+#!/usr/bin/falcon
+/*
+   falbot - Falcon IRC Bot
+   FILE: falbot.fal
 
-class FalBot( host, nick, name ) from IrcClient( host, nick, name )
-   function onPrivateMessage( message )
-      > "<FalBot> ", message
-      
-      if strFind( message.said, self.nick ) == 0
-         self.onMessageToMe( message )
-      end
-   end
-   
-   function onMessageToMe( message )
-      > "<FalBot> Message to Me"
-      self.message( message.channel, @"$message.nick : howdy there partner, you said: " + message.toString() )
-   end
-end
+   Application main script file.
+   -------------------------------------------------------------------
+   Author: Paul Nema
+   Begin: 13-DEC-2009
 
-i = FalBot( "irc.freenode.net", "falbot_", "FalconBOT" )
-i.setTimeout( 2000 )
-i.connect()
-i.send( "JOIN :#falconpl" )
+   -------------------------------------------------------------------
+   (C) Copyright 2009: the falbot developers (see list in AUTHORS file)
 
+   See LICENSE file for licensing details.
+*/
+
+ 
+// Falcon Modules
+load regex
+
+// FalconLogger Modules
+load IrcClient
+load ManageUsers
+load CommandLine
+load DocHelp
+
+
+CommandLine.parse()  // get the command line options
+
+logger = IrcClient( "Logger/Eval/Info Bot", CommandLine )
+
+if CommandLine.eval:  user_manager = ManageUsers( logger, CommandLine )
+
+docHelp = DocHelp( logger, CommandLine )
+
+logger.connect() // connect to the irc server
+logger.join( CommandLine.channel ) // join a channel
+
+time = CurrentTime()
+
+// loop forever
+// Create a new log file when the day changes
 while true
-   sleep( 0.5 )
-   i.checkNetwork()
+    if CommandLine.log
+        newTime = CurrentTime()
+        
+        if newTime.day > time.day
+            if CommandLine.verbose: > "Creating a new log file"
+            logger.generateLogFile()
+        end
+        
+        time = newTime
+    end
+
+    sleep(10)
 end
