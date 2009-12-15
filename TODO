@@ -1,0 +1,10 @@
+TODO for 1.1
+
+   - Detect network disconnect and reconnect
+   - Implement more security features into the code compiler:
+     A. Ensure malicious code does not damage the file system
+     B. Prevent forever loops (Terminate script if high CPU utilization is detected / etc)
+   - !help for C++ code
+   - !help for other falcon projects (e.g.falbot, faldoc, etc)
+   - provide falbot functionality for multiple channels simultaneously
+
