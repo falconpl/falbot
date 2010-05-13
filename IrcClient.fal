@@ -252,11 +252,30 @@ class IrcClient( nName, CommandLine ) from TCPSocket
     
     function generateLogFile()
         time = CurrentTime().toString("%Y-%m-%d")
-	self.cmd_line.log += @ "Log-$(self.clientName)-$(time).txt"
+        year = CurrentTime().toString("%Y")
+        month = CurrentTime().toString("%m")
 
-        self.logStream = IOStream( self.cmd_line.log )
-        self.logStream.seekEnd( 0 ) // append if the file exists
-        
+        full_path = self.cmd_line.log + @ "$year/$month"
+
+        try
+            dirMake( full_path, 'Full' )
+        catch in err
+            > @ "Unable to create directory---> $full_path"
+            > @ "Error Code: $err"
+            exit()
+        end
+
+        self.cmd_line.log += @ "$year/$month/Log-$(self.clientName)-$(time).txt"
+
+        try
+            self.logStream = IOStream( self.cmd_line.log )
+            self.logStream.seekEnd( 0 ) // append if the file exists
+        catch in err
+            > @ "Unable to create file---> $full_path"
+            > @ "Error Code: $err"
+            exit()
+        end
+
         if self.cmd_line.verbose: > @ "Created Log File ", self.cmd_line.log
     end
     
