@@ -10,8 +10,8 @@ OBTIAN
 
 Currently there is no distribution for falbot.
 
-To obtain falbot pull from the SVN repository.  Use the following svn command:
-svn co svn://falconpl.org/falcon/projects/falbot
+To obtain falbot pull from the Git repository.  Use the following command:
+git clone http://git.falconpl.org/falbot.git
 
 FUNCTIONAL SUMMARY
 ========================
