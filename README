@@ -19,7 +19,7 @@ FUNCTIONAL SUMMARY
 falbot is an IRC chat bot.  It is meant to sit on a channel, log the traffic,
 and provide two other services:
     1. Provide links to the falconpl.org website by scanning the channel for the
-       '!help' command.  The primary purpose of this feature is for knowledgable
+       '!help' command.  The primary purpose of this feature is for knowledgeable
        falcon chat user to give help to new falcon users on the chat channel.
     2. Code compiler.  falbot scans the channel for keywords denoting code
        submissions for falbot to compile and send output back to the channel
@@ -70,7 +70,7 @@ and stop recording a code block for a specific nick.  Key words are
 {%code%}
 {%codeend%} - Note actual keyword pattern allows for space and caps e.g.
   {% CodeEND  %} is valid
-everything inbetween these two key words will be feed into a compiler and
+everything in between these two key words will be feed into a compiler and
 executed.  Results will be send back to the channel
 
 Other key words:
@@ -81,7 +81,7 @@ Other key words:
 {%help%} Send to the specific nick compiler usage
 
 Security: Script commands that touch the file system or execute processes have
-been turned off.  See safe.fal for all falcon fucntions calls that have been
+been turned off.  See safe.fal for all falcon functions calls that have been
 overridden.
 
 HELP
@@ -93,12 +93,12 @@ To utilize:
 
 !help keyword must start on the first character of the message. Help options:
 
-!help help - send usage to the nick requesing help on !help
+!help help - send usage to the nick requesting help on !help
 
 Currently falbot support three domains for help:
 1. The falconpl.org website.  These comprise the *.ftd files
 2. Core: These comprise the *.html files created by faldoc
-3. Module: These compirse the *.html files created by faldoc
+3. Module: These comprise the *.html files created by faldoc
 Assumption made by falbot is each of the above categories are in flat
 directories.
 
